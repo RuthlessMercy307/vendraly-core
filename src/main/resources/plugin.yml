@@ -1,0 +1,96 @@
+name: VendralyCore
+version: 1.0.0
+main: com.vendraly.core.Main
+api-version: 1.21
+author: RuthlessMercy
+description: Plugin base de Vendraly en Purpur.
+
+commands:
+  testcore:
+    description: Un comando de prueba para verificar que el plugin funciona.
+    usage: /testcore
+    permission: vendralycore.test
+    permission-message: No tienes permiso para usar /testcore.
+
+  register:
+    description: Registra una nueva cuenta en el servidor.
+    usage: /register <contraseña> <confirmar>
+    permission: ""
+
+  login:
+    description: Inicia sesión en tu cuenta.
+    usage: /login <contraseña>
+    permission: ""
+
+  eco:
+    description: Comando de administración de economía.
+    usage: /eco <give|take|set|balance> <jugador> <cantidad> <cash|bank>
+    permission: vendralycore.admin.eco
+    permission-message: No tienes permiso para administrar la economía.
+
+  pay:
+    description: Transfiere efectivo (dinero robable) a otro jugador.
+    usage: /pay <jugador> <cantidad>
+    permission: ""
+
+  trade:
+    description: Inicia, acepta u ofrece dinero en un tradeo seguro.
+    usage: /trade <jugador> | /trade accept <jugador> | /trade money <cantidad>
+    permission: ""
+
+  setrole:
+    description: Cambia el rol de un jugador.
+    usage: /setrole <jugador> <rol>
+    permission: vendralycore.admin.setrole
+    permission-message: No tienes permiso para cambiar roles.
+
+  vban:
+    description: Banea permanentemente a un jugador.
+    usage: /vban <jugador> [razón]
+    permission: vendralycore.mod.ban
+    permission-message: No tienes permiso para banear.
+
+  vunban:
+    description: Desbanea a un jugador.
+    usage: /vunban <jugador>
+    permission: vendralycore.mod.unban
+    permission-message: No tienes permiso para desbanear.
+
+  stats:
+    description: Abre el menú de atributos RPG.
+    usage: /<command>
+    aliases: [ atributos, rpg ]
+
+  rgpexp:
+    description: Comando de administrador para modificar niveles y stats RPG.
+    usage: /rgpexp <jugador> <add|remove|set> <cantidad> <lvl|points|stat> [stat_name]
+    permission: vendraly.rpg.admin
+
+  # --- COMANDO RPG ZONE AÑADIDO ---
+  rpgzone:
+    description: Administra las zonas de dificultad RPG (seleccionar, crear, remover).
+    usage: /rpgzone <select 1/2 | create | remove | list>
+    permission: vendralycore.admin.rpgzone
+    permission-message: No tienes permiso para administrar zonas RPG.
+
+
+permissions:
+  vendralycore.admin.eco:
+    description: Permiso para administrar la economía
+    default: op
+  vendralycore.admin.setrole:
+    description: Permiso para cambiar roles de jugadores
+    default: op
+  # --- PERMISO RPG ZONE AÑADIDO ---
+  vendralycore.admin.rpgzone:
+    description: Permiso para crear y modificar zonas de dificultad RPG
+    default: op
+  vendralycore.mod.ban:
+    description: Permiso para banear jugadores
+    default: op
+  vendralycore.mod.unban:
+    description: Permiso para desbanear jugadores
+    default: op
+  vendralycore.test:
+    description: Permiso para usar comandos de prueba
+    default: op

@@ -1,0 +1,75 @@
+# ---------------------------------------------------------------------
+# Configuración del Plugin VendralyCore
+# ---------------------------------------------------------------------
+
+# Configuración del sistema de almacenamiento
+storage:
+  type: "YAML"
+  auto-save-interval: 300
+
+# Configuración de economía
+economy:
+  starting-balance: 100.0
+  max-balance: 1000000.0
+  min-payment: 1.0
+  money-types:
+    safe: "Dinero seguro"
+    cash: "Dinero robable"
+
+# Configuración de autenticación
+auth:
+  require-registration: true
+  require-login: true
+  max-password-length: 16
+  min-password-length: 4
+  session-duration: 86400
+
+# Configuración de roles
+roles:
+  default-role: "default"
+  roles:
+    default:
+      prefix: "&7"
+      permissions: []
+    vip:
+      prefix: "&a[VIP] "
+      permissions: ["vendralycore.vip"]
+    premium:
+      prefix: "&6[PREMIUM] "
+      permissions: ["vendralycore.premium"]
+    moderator:
+      prefix: "&9[MOD] "
+      permissions: ["vendralycore.mod.*"]
+    admin:
+      prefix: "&c[ADMIN] "
+      permissions: ["vendralycore.*"]
+
+# Configuración de trades
+trade:
+  max-trade-distance: 10
+  trade-timeout: 60
+  max-money-trade: 10000.0
+
+# Configuración de seguridad
+security:
+  enable-anti-cheat: true
+  log-suspicious-activities: true
+  backup-interval: 3600
+
+# Configuración de experiencia RPG
+xp:
+  base: 200
+  multiplier: 1.15
+  statPointsPerLevel: 1
+
+# Configuración de spawn de mobs en zonas
+zone-spawner:
+  initial-delay: 60
+  interval-ticks: 200
+  max-attempts: 15
+  log-spawns: true
+
+parry:
+  cooldown: 3          # segundos
+  invulnerability: 16  # ticks
+  enable-effects: true # activar/desactivar partículas/sonido
