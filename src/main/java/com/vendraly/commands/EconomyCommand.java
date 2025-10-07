@@ -75,7 +75,7 @@ public class EconomyCommand implements CommandExecutor {
                     return null;
                 });
             } else if (accountType.equals("cash")) {
-                cashManager.getCash(targetUUID).thenAccept(balance -> {
+                cashManager.getBalance(targetUUID).thenAccept(balance -> {
                     sender.sendMessage(ChatColor.GREEN + "Efectivo robable de " + targetName + ": " + ChatColor.GOLD + String.format("$%.2f", balance));
                 }).exceptionally(throwable -> {
                     sender.sendMessage(ChatColor.RED + "Error al obtener el efectivo.");
@@ -135,7 +135,7 @@ public class EconomyCommand implements CommandExecutor {
                     return null;
                 });
             } else {
-                cashManager.getCash(targetUUID).thenAccept(currentCash -> {
+                cashManager.getBalance(targetUUID).thenAccept(currentCash -> {
                     double difference = amount - currentCash;
                     plugin.getLogger().info("Set cash - Actual: " + currentCash + ", Nuevo: " + amount + ", Diferencia: " + difference);
                     modifyBalance(sender, targetName, targetUUID, difference, accountType, "establecido", false);

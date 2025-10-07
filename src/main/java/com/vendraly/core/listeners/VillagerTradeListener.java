@@ -230,7 +230,7 @@ public class VillagerTradeListener implements Listener {
 
     private void applyBaseCostToTrade(Villager villager, TradeSelectEvent event, MerchantRecipe recipe, Player player) {
         final int baseCost = (int) Math.ceil(5 * PRICE_MULTIPLIER);
-        cashManager.getCash(player.getUniqueId()).thenAccept(currentCash -> {
+        cashManager.getBalance(player.getUniqueId()).thenAccept(currentCash -> {
             plugin.getServer().getScheduler().runTask(plugin, () -> {
                 if (!player.isOnline()) return;
 
@@ -306,7 +306,7 @@ public class VillagerTradeListener implements Listener {
     private void processTradeWithCash(Villager villager, TradeSelectEvent event, MerchantRecipe recipe, double requiredCash, Player player) {
         // La comprobación de Mending se ha movido al onTradeSelect.
 
-        cashManager.getCash(player.getUniqueId()).thenAccept(currentCash -> {
+        cashManager.getBalance(player.getUniqueId()).thenAccept(currentCash -> {
             plugin.getServer().getScheduler().runTask(plugin, () -> {
                 if (!player.isOnline()) return;
 

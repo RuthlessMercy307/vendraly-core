@@ -81,7 +81,7 @@ public class XPManager {
         RPGStats stats = statManager.getStats(playerId);
         if (stats == null) return;
 
-        long currentXP = stats.getTotalExperience();
+        long currentXP = stats.getTotalExp();
         int level = stats.getLevel();
         long xpForNextLevel = getXPForNextLevel(level);
 
@@ -91,6 +91,8 @@ public class XPManager {
         // Procesar múltiples niveles si aplica
         while (newXP >= xpForNextLevel) {
             newXP -= xpForNextLevel;
+
+            int oldLevel = level;
             level++;
             leveledUp = true;
             xpForNextLevel = getXPForNextLevel(level);
@@ -108,8 +110,8 @@ public class XPManager {
                     + "para gastar con /atributos.");
             player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
 
-            // Lanzar evento custom
-            Bukkit.getPluginManager().callEvent(new PlayerLevelUpEvent(player, level));
+            // Lanzar evento custom con nivel anterior y nuevo nivel
+            Bukkit.getPluginManager().callEvent(new PlayerLevelUpEvent(player, oldLevel, level));
         }
 
         // Guardar nuevos valores
@@ -149,7 +151,7 @@ public class XPManager {
         if (stats == null) return;
 
         int level = stats.getLevel();
-        long currentXP = stats.getTotalExperience();
+        long currentXP = stats.getTotalExp();
         long requiredXP = getXPForNextLevel(level);
 
         player.setLevel(level);

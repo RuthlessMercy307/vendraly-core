@@ -258,4 +258,10 @@ public class StatManager implements CommandExecutor, Listener {
         attributeApplier.recalculateEquippedBonuses(player);
         updatePlayerVisuals(player);
     }
+
+    public boolean isInStaminaCooldown(UUID uuid) {
+        Long until = staminaCooldowns.get(uuid);
+        return until != null && until > System.currentTimeMillis();
+    }
+
 }

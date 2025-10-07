@@ -88,7 +88,7 @@ public class PayCommand implements CommandExecutor {
         payer.sendMessage(ChatColor.YELLOW + "Verificando saldo y procesando pago...");
 
         // 5. Transferencia Asíncrona completa (evitamos el .join())
-        cashManager.getCash(payerUUID)
+        cashManager.getBalance(payerUUID)
                 .thenCompose(totalCash -> {
                     if (totalCash < amount) {
                         // Si no tiene suficiente, se lanza una excepción que se captura abajo

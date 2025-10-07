@@ -123,13 +123,13 @@ public class RPGMonster {
      * Útil para que el mob se sienta realmente más fuerte (vida, knockback, etc.)
      */
     public void applyAttributes() {
-        AttributeInstance maxHealthAttr = entity.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+        AttributeInstance maxHealthAttr = entity.getAttribute(Attribute.MAX_HEALTH);
         if (maxHealthAttr != null) {
             maxHealthAttr.setBaseValue(maxHealth);
             entity.setHealth(Math.min(maxHealth, currentHealth));
         }
 
-        AttributeInstance knockbackAttr = entity.getAttribute(Attribute.GENERIC_KNOCKBACK_RESISTANCE);
+        AttributeInstance knockbackAttr = entity.getAttribute(Attribute.KNOCKBACK_RESISTANCE);
         if (knockbackAttr != null) {
             knockbackAttr.setBaseValue(knockbackResistance);
         }

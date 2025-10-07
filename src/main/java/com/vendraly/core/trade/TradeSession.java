@@ -56,7 +56,7 @@ public class TradeSession {
     private double getPlayerCashSafely(Player player) {
         try {
             // Se usa join() para esperar el resultado antes de continuar, asumiendo que el CashManager lo permite.
-            return cashManager.getCash(player.getUniqueId()).join();
+            return cashManager.getBalance(player.getUniqueId()).join();
         } catch (Exception e) {
             plugin.getLogger().severe("Error CRITICO al obtener el saldo de efectivo de " + player.getName() + ": " + e.getMessage());
             player.sendMessage(ChatColor.RED + "Error crítico al obtener tu saldo. Tradeo cancelado.");

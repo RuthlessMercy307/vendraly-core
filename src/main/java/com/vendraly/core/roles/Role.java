@@ -1,8 +1,12 @@
 package com.vendraly.core.roles;
 
+import net.kyori.adventure.text.Component;
 import org.bukkit.ChatColor;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.Arrays;
 import java.util.List;
+import net.kyori.adventure.text.format.NamedTextColor;
 
 /**
  * Define los diferentes roles disponibles en el servidor, sus prefijos y permisos.
@@ -61,8 +65,8 @@ public enum Role {
      * Obtiene el prefijo formateado para mostrar en el chat.
      * Ejemplo: [Owner]
      */
-    public String getFormattedPrefix() {
-        return color + "[" + prefix + "] " + ChatColor.RESET;
+    public @NotNull Component getFormattedPrefix() {
+        return Component.text("[" + prefix + "] ", convertColor(color));
     }
 
     /**
@@ -78,4 +82,19 @@ public enum Role {
     public boolean isOp() {
         return isOp;
     }
+
+
+    private NamedTextColor convertColor(ChatColor chatColor) {
+        return switch (chatColor) {
+            case DARK_RED -> NamedTextColor.DARK_RED;
+            case DARK_AQUA -> NamedTextColor.DARK_AQUA;
+            case LIGHT_PURPLE -> NamedTextColor.LIGHT_PURPLE;
+            case AQUA -> NamedTextColor.AQUA;
+            case YELLOW -> NamedTextColor.YELLOW;
+            case GREEN -> NamedTextColor.GREEN;
+            case GRAY -> NamedTextColor.GRAY;
+            default -> NamedTextColor.WHITE;
+        };
+    }
+
 }

@@ -96,9 +96,9 @@ public class MonsterListener implements Listener {
 
         RPGMonster rpgMob = getRpgMonster(damagedEntity);
         if (rpgMob != null) {
-            double defense = rpgMob.getDefenseReduction();
             double originalDamage = event.getDamage();
-            double finalDamage = Math.max(0.1, originalDamage - defense);
+            double finalDamage = rpgMob.calculateDamageTaken(originalDamage);
+            double defense = rpgMob.getDefensePower();
 
             event.setDamage(finalDamage);
 
@@ -139,7 +139,7 @@ public class MonsterListener implements Listener {
         // 3. ORO personalizado
         double goldReward = rpgMob.getLevel() * 5.0; // 💰 Fórmula de recompensa
         if (plugin.getCashManager() != null) {
-            plugin.getCashManager().modifyCash(killer.getUniqueId(), goldReward).thenAccept(success -> {
+            plugin.getCashManager().modifyBalance(killer.getUniqueId(), goldReward).thenAccept(success -> {
                 if (success) {
                     // Mensajes visuales al jugador (en el hilo principal)
                     plugin.getServer().getScheduler().runTask(plugin, () -> {

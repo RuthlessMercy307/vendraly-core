@@ -21,6 +21,10 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+
 /**
  * Gestiona la Scoreboard lateral (sidebar) de forma robusta y eficiente.
  */
@@ -38,7 +42,7 @@ public class ScoreboardManager {
     private final Map<UUID, Double> cachedCash = new ConcurrentHashMap<>();
     private final Map<UUID, Long> lastUpdate = new ConcurrentHashMap<>();
     private static final long UPDATE_COOLDOWN = 1000;
-    private static final String SIDEBAR_TITLE = ChatColor.GOLD.toString() + ChatColor.BOLD + ":: VENDRAYLY CORE ::";
+    private static final String SIDEBAR_TITLE = ChatColor.GOLD.toString() + ChatColor.BOLD + ":: VENDRALY CORE ::";
 
     public ScoreboardManager(Main plugin) {
         this.plugin = plugin;
@@ -49,13 +53,26 @@ public class ScoreboardManager {
         this.xpManager = plugin.getXPManager();
     }
 
+    /**
+     * Devuelve el color Adventure correspondiente al rol.
+     */
+    private NamedTextColor getRoleColor(Role role) {
+        if (role == null) return NamedTextColor.WHITE;
+        return switch (role) {
+            case OWNER -> NamedTextColor.RED;
+            case MODERADOR -> NamedTextColor.DARK_GREEN;
+            case VIP -> NamedTextColor.GOLD;
+            case PLAYER -> NamedTextColor.GRAY;
+            default -> NamedTextColor.WHITE;
+        };
+    }
+
     public void startUpdateTask() {
         if (taskId != -1) {
             plugin.getLogger().warning("Scoreboard task ya está iniciada.");
             return;
         }
 
-        // Tarea que se ejecuta en el hilo PRINCIPAL
         taskId = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             try {
                 updateAllCashBalancesAsync();
@@ -77,14 +94,10 @@ public class ScoreboardManager {
         }
     }
 
-    /**
-     * Actualiza todos los saldos de efectivo en caché de forma asíncrona.
-     */
     private void updateAllCashBalancesAsync() {
         for (Player player : Bukkit.getOnlinePlayers()) {
             UUID uuid = player.getUniqueId();
 
-            // CRÍTICO: Solo solicitar datos si el jugador está autenticado.
             if (!authManager.isAuthenticated(uuid)) {
                 continue;
             }
@@ -94,7 +107,7 @@ public class ScoreboardManager {
                 continue;
             }
 
-            cashManager.getCash(uuid).thenAccept(cash -> {
+            cashManager.getBalance(uuid).thenAccept(cash -> {
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     cachedCash.put(uuid, cash);
                     lastUpdate.put(uuid, now);
@@ -116,22 +129,14 @@ public class ScoreboardManager {
         }
     }
 
-    // ------------------------------------
-    // --- MÉTODOS DE INICIALIZACIÓN/NOTIFICACIÓN ---
-    // ------------------------------------
+    // -------------------------------
+    // Métodos de inicialización
+    // -------------------------------
 
-    /**
-     * Método de sincronización pública llamado por listeners (ej. EquipmentListener)
-     * para forzar una actualización inmediata de la scoreboard.
-     */
     public void updateScoreboard(Player player) {
         updatePlayerBoard(player);
     }
 
-    /**
-     * Resuelve el error de compilación. Inicializa el scoreboard para un jugador.
-     * Es sinónimo de updatePlayerBoard ya que el método de update maneja la creación.
-     */
     public void initPlayerScoreboard(Player player) {
         updatePlayerBoard(player);
     }
@@ -148,11 +153,9 @@ public class ScoreboardManager {
         updatePlayerBoard(player);
     }
 
-
     public void updatePlayerBoard(Player player) {
         if (player == null || !player.isOnline()) return;
 
-        // CRÍTICO: No actualizar si los datos no están listos.
         if (!authManager.isAuthenticated(player.getUniqueId())) return;
 
         try {
@@ -204,45 +207,38 @@ public class ScoreboardManager {
         }
     }
 
-    /**
-     * Construye el contenido del scoreboard con el formato limpio.
-     */
     private void buildScoreboard(Player player, Scoreboard board, Objective objective) {
         int score = 10;
 
-        // OBTENER DATOS (Seguro gracias al check de autenticación)
         UUID uuid = player.getUniqueId();
         RPGStats stats = statManager.getStats(uuid);
         Role role = authManager.getPlayerRole(player);
 
-        // CRÍTICO: Añadir chequeo de stats
         int unspentPoints = (stats != null) ? xpManager.getUnspentStatPoints(uuid) : 0;
-
         double cash = cachedCash.getOrDefault(uuid, 0.0);
-        int fame = getPlayerFame(uuid); // Placeholder
-
-        // ----------------------------------------------------
-        // LÓGICA DEL SCOREBOARD (de arriba a abajo)
-        // ----------------------------------------------------
+        int fame = getPlayerFame(uuid);
 
         setScoreboardLine(objective, board, ChatColor.AQUA.toString(), score--); // Espacio invisible
 
-        // 2. Rango
-        String rolePrefix = (role != null) ? getRoleColor(role) + role.getFormattedPrefix() : ChatColor.WHITE + "Campesino";
+        // Rango
+        Component rolePrefixComp = (role != null)
+                ? Component.text("").color(getRoleColor(role)).append(role.getFormattedPrefix())
+                : Component.text("Campesino", NamedTextColor.WHITE);
+
+        String rolePrefix = LegacyComponentSerializer.legacySection().serialize(rolePrefixComp);
         setScoreboardLine(objective, board, ChatColor.AQUA + "Rango: " + rolePrefix, score--);
 
-        // 3. Dinero
-        setScoreboardLine(objective, board, ChatColor.GREEN + "Dinero: " + ChatColor.YELLOW + "$" + String.format("%,.0f", cash), score--);
+        // Dinero
+        setScoreboardLine(objective, board,
+                ChatColor.GREEN + "Dinero: " + ChatColor.YELLOW + "$" + String.format("%,.0f", cash), score--);
 
-        setScoreboardLine(objective, board, ChatColor.WHITE.toString(), score--); // Separador
+        setScoreboardLine(objective, board, ChatColor.WHITE.toString(), score--);
 
-        // 4. Vida/Vida Max
+        // Vida
         String healthLine = ChatColor.RED + "♥ Vida: " + ChatColor.WHITE + "Cargando...";
         if (stats != null && statManager.getAttributeApplier() != null) {
-            // Aseguramos que la vida en el scoreboard refleje el valor de la vida RPG
-            double rpgMaxHealth = stats.getMaxHealth(); // Valor de vida máxima RPG
-            double rpgCurrentHealth = stats.getCurrentHealth(); // Valor de vida actual RPG (sincronizado con Bukkit/Spigot)
-
+            double rpgMaxHealth = stats.getMaxHealth();
+            double rpgCurrentHealth = stats.getCurrentHealth();
             String currentHealthText = String.format("%.0f", rpgCurrentHealth);
             String maxHealthText = String.format("%.0f", rpgMaxHealth);
 
@@ -251,10 +247,10 @@ public class ScoreboardManager {
         }
         setScoreboardLine(objective, board, healthLine, score--);
 
-        // 5. Experiencia
+        // Experiencia
         String expLine = ChatColor.DARK_AQUA + "Nivel: " + ChatColor.WHITE + "Cargando...";
         if (stats != null) {
-            long currentExp = stats.getTotalExperience();
+            long currentExp = stats.getTotalExp();
             int level = stats.getLevel();
             long requiredExp = xpManager.getXPForNextLevel(level);
 
@@ -264,34 +260,26 @@ public class ScoreboardManager {
         }
         setScoreboardLine(objective, board, expLine, score--);
 
-        // 6. Fama
+        // Fama
         String fameColor = (fame < 0) ? ChatColor.RED.toString() : ChatColor.WHITE.toString();
         setScoreboardLine(objective, board, ChatColor.GOLD + "Fama: " + fameColor + fame, score--);
 
-        // 7. Party
+        // Party
         String partyStatus = ChatColor.DARK_AQUA + "Party: " + ChatColor.WHITE + "0/3";
         setScoreboardLine(objective, board, partyStatus, score--);
 
-        setScoreboardLine(objective, board, ChatColor.BLACK.toString(), score--); // Separador (línea en blanco)
+        setScoreboardLine(objective, board, ChatColor.BLACK.toString(), score--);
 
-        // 8. Puntos de Atributo disponibles
+        // Puntos disponibles
         if (unspentPoints > 0) {
-            setScoreboardLine(objective, board, ChatColor.YELLOW.toString() + ChatColor.BOLD + "¡" + ChatColor.RED + unspentPoints + ChatColor.YELLOW + " PUNTOS DISPONIBLES!", score--);
+            setScoreboardLine(objective, board, ChatColor.YELLOW.toString() + ChatColor.BOLD +
+                    "¡" + ChatColor.RED + unspentPoints + ChatColor.YELLOW + " PUNTOS DISPONIBLES!", score--);
         }
     }
 
-    // ------------------------------------
-    // --- MÉTODOS HELPER Y DE GESTIÓN ---
-    // ------------------------------------
-
     private int getPlayerFame(UUID uuid) {
-        // Placeholder, se necesita implementación en PlayerData.
+        // TODO: Implementar en PlayerData
         return 0;
-    }
-
-    private ChatColor getRoleColor(Role role) {
-        if (role == null) return ChatColor.WHITE;
-        return role.getColor();
     }
 
     private void setScoreboardLine(Objective objective, Scoreboard board, String text, int score) {
@@ -305,7 +293,6 @@ public class ScoreboardManager {
                 team.addEntry(entry);
             }
 
-            // CRÍTICO: La línea real se establece en el prefix.
             team.setPrefix(text);
             objective.getScore(entry).setScore(score);
         } catch (Exception e) {
@@ -314,7 +301,6 @@ public class ScoreboardManager {
     }
 
     private String getUniqueEntryByScore(int score) {
-        // Usamos colores invisibles para crear entradas únicas y poder cambiar el texto con el prefix.
         return ChatColor.values()[score].toString() + ChatColor.RESET;
     }
 
@@ -341,7 +327,7 @@ public class ScoreboardManager {
         try {
             if (!authManager.isAuthenticated(uuid)) return;
 
-            cashManager.getCash(uuid).thenAccept(cash -> {
+            cashManager.getBalance(uuid).thenAccept(cash -> {
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     cachedCash.put(uuid, cash);
                     lastUpdate.put(uuid, System.currentTimeMillis());

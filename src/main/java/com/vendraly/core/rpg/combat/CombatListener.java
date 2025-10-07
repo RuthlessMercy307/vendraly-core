@@ -2,7 +2,7 @@ package com.vendraly.core.rpg.combat;
 
 import com.vendraly.core.Main;
 import com.vendraly.core.rpg.RPGStats;
-import com.vendraly.core.rpg.combat.DamageEngine.AttackDirection;
+import com.vendraly.core.rpg.combat.AttackDirection;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -52,8 +52,8 @@ public class CombatListener implements Listener {
         }
 
         // Obtenemos los RPGStats
-        RPGStats atkStats = plugin.getStatManager().getRPGStats(attacker.getUniqueId());
-        RPGStats defStats = plugin.getStatManager().getRPGStats(defender.getUniqueId());
+        RPGStats atkStats = plugin.getStatManager().getStats(attacker.getUniqueId());
+        RPGStats defStats = plugin.getStatManager().getStats(defender.getUniqueId());
 
         // Llamamos al motor de daño
         DamageEngine.DamageResult result = DamageEngine.calculateDamage(
@@ -99,8 +99,8 @@ public class CombatListener implements Listener {
      * Comprueba si el jugador está esquivando (Shift + stamina).
      */
     private boolean isDodging(Player player) {
-        RPGStats stats = plugin.getStatManager().getRPGStats(player.getUniqueId());
-        if (player.isSneaking() && dodgeCooldownReady(player) && stats.getStamina() >= 5) {
+        RPGStats stats = plugin.getStatManager().getStats(player.getUniqueId());
+        if (player.isSneaking() && dodgeCooldownReady(player) && stats.getCurrentStamina() >= 5) {
             stats.consumeStamina(5);
             return true;
         }

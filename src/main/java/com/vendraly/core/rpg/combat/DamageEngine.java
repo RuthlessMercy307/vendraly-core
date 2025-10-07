@@ -2,6 +2,7 @@ package com.vendraly.core.rpg.combat;
 
 import com.vendraly.core.rpg.RPGMonster;
 import com.vendraly.core.rpg.RPGStats;
+import com.vendraly.core.rpg.StatManager;
 import org.bukkit.Location;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -14,13 +15,11 @@ public class DamageEngine {
 
     private static final Random random = new Random();
 
-    public enum AttackDirection {
-        UP,
-        LEFT,
-        RIGHT,
-        DIAGONAL_LEFT_DOWN,
-        DIAGONAL_RIGHT_DOWN,
-        NEUTRAL
+    // referencia al StatManager (inyectada desde Main)
+    private static StatManager statManager;
+
+    public static void init(StatManager manager) {
+        statManager = manager;
     }
 
     // ===========================
@@ -94,8 +93,8 @@ public class DamageEngine {
         double angle = 45.0;  // cono
 
         for (LivingEntity target : getEntitiesInCone(attacker, range, angle)) {
-            RPGStats attackerStats = RPGStats.get(attacker.getUniqueId());
-            RPGStats defenderStats = RPGStats.get(target.getUniqueId());
+            RPGStats attackerStats = statManager.getStats(attacker.getUniqueId());
+            RPGStats defenderStats = statManager.getStats(target.getUniqueId());
 
             DamageResult result = calculateDamage(
                     attackerStats, defenderStats,

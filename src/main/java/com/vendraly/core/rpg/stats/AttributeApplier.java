@@ -54,7 +54,7 @@ public class AttributeApplier {
         RPGStats stats = statManager.getStats(uuid);
         if (stats == null) return 0.0;
         // CORRECCIÓN: Usar getAbilityLevel con AbilityType para evitar el error de String/Enum
-        int tailoringLevel = stats.getLevel(StatManager.TAILORING);
+        int tailoringLevel = stats.getSkillLevel(StatManager.TAILORING);
         return tailoringLevel * TAILORING_MAGIC_DEFENSE_PER_LEVEL;
     }
 
@@ -100,7 +100,7 @@ public class AttributeApplier {
 
             totalStrBonus       += pdc.getOrDefault(keys.BONUS_STAT_STRENGTH,      PersistentDataType.INTEGER, 0);
             totalDefBonus       += pdc.getOrDefault(keys.BONUS_STAT_DEFENSE,       PersistentDataType.INTEGER, 0);
-            totalSpeedBonus     += pdc.getOrDefault(keys.BONUS_STAT_SPEED,         PersistentDataType.INTEGER, 0);
+            totalSpeedBonus     += pdc.getOrDefault(keys.BONUS_STAT_MOVEMENT_SPEED,         PersistentDataType.INTEGER, 0);
             totalHealthBonus    += pdc.getOrDefault(keys.BONUS_STAT_HEALTH,        PersistentDataType.INTEGER, 0);
             totalStaminaBonus   += pdc.getOrDefault(keys.BONUS_STAT_STAMINA_MAX,   PersistentDataType.INTEGER, 0);
 

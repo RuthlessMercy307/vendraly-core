@@ -23,7 +23,7 @@ public class StaminaRegenTask extends BukkitRunnable {
     @Override
     public void run() {
         for (Player player : Bukkit.getOnlinePlayers()) {
-            RPGStats stats = plugin.getStatManager().getRPGStats(player.getUniqueId());
+            RPGStats stats = plugin.getStatManager().getStats(player.getUniqueId());
             if (stats == null) continue;
 
             // Si el jugador no está stuneado y no tiene cooldown activo

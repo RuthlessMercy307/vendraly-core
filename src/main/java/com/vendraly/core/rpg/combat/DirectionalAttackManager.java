@@ -28,6 +28,9 @@ public class DirectionalAttackManager {
     private final Map<UUID, AttackDirection> lastRenderedDirection = new HashMap<>();
     private final Map<UUID, Boolean> isAttacking = new HashMap<>();
 
+    // ⬇️ NUEVO: mapa para guardar el último “timing verde” (perfect block)
+    private final Map<UUID, Long> lastGreenTimes = new HashMap<>();
+
     private static final double MIN_YAW_CHANGE = 5.0;
     private static final double MIN_PITCH_CHANGE = 3.0;
     private static final double INDICATOR_HEIGHT = 2.3;
@@ -49,6 +52,8 @@ public class DirectionalAttackManager {
 
         // Verde (inicio de wind-up)
         setSymbolColor(player, finalDirection, NamedTextColor.GREEN);
+        // Guardamos el “timing verde”
+        markGreenTiming(player);
 
         new BukkitRunnable() {
             @Override
@@ -76,14 +81,11 @@ public class DirectionalAttackManager {
      */
     private void executeDirectionalAttack(Player player, AttackDirection direction) {
         try {
-            // Aquí llamas a tu DamageEngine real
             DamageEngine.applyDirectionalAttack(player, direction);
 
-            // Feedback extra (puedes mover esto al DamageEngine)
             player.getWorld().playSound(player.getLocation(),
                     org.bukkit.Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1f);
 
-            // Opcional: partículas de sweep
             player.getWorld().spawnParticle(org.bukkit.Particle.SWEEP_ATTACK,
                     player.getLocation().add(0, 1, 0), 3);
 
@@ -137,6 +139,7 @@ public class DirectionalAttackManager {
         activeDirection.remove(uuid);
         lastRenderedDirection.remove(uuid);
         isAttacking.remove(uuid);
+        lastGreenTimes.remove(uuid);
     }
 
     private void startHologramUpdater(Player player, ArmorStand stand) {
@@ -214,7 +217,6 @@ public class DirectionalAttackManager {
         UUID uuid = player.getUniqueId();
         AttackDirection dir = activeDirection.getOrDefault(uuid, lastRenderedDirection.getOrDefault(uuid, AttackDirection.RIGHT));
 
-        // Mantener la última si es neutral
         if (dir == AttackDirection.NEUTRAL)
             dir = lastRenderedDirection.getOrDefault(uuid, AttackDirection.RIGHT);
 
@@ -246,6 +248,20 @@ public class DirectionalAttackManager {
         return getLastNonNeutralDirection(player);
     }
 
+    // ===========================================================
+    // == TIMING VERDE ==
+    // ===========================================================
+    public void markGreenTiming(Player player) {
+        lastGreenTimes.put(player.getUniqueId(), System.currentTimeMillis());
+    }
+
+    public Long getLastGreenTime(Player player) {
+        return lastGreenTimes.get(player.getUniqueId());
+    }
+
+    // ===========================================================
+    // == STOP ==
+    // ===========================================================
     public void stop() {
         holograms.values().forEach(ArmorStand::remove);
         holograms.clear();
@@ -253,5 +269,6 @@ public class DirectionalAttackManager {
         activeDirection.clear();
         lastRenderedDirection.clear();
         isAttacking.clear();
+        lastGreenTimes.clear();
     }
 }

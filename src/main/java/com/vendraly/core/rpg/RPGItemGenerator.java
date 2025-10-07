@@ -158,4 +158,37 @@ public class RPGItemGenerator {
             reqs.put(label, val);
         }
     }
+
+    /* ---------------------------
+   Generación principal de ítems RPG
+   --------------------------- */
+    public ItemStack generateRPGItem(ItemStack baseItem,
+                                     int playerSkillLevel,
+                                     AbilityType ability,
+                                     int difficultyLevel,
+                                     Map<String, Integer> basePDCData) {
+        // 1. Determinar calidad del ítem
+        String quality;
+        if (playerSkillLevel >= difficultyLevel + 10) {
+            quality = "Legendario";
+        } else if (playerSkillLevel >= difficultyLevel) {
+            quality = "Raro";
+        } else if (playerSkillLevel >= difficultyLevel * 0.7) {
+            quality = "Común";
+        } else {
+            quality = "Defectuoso";
+        }
+
+        // 2. Nivel final del ítem (capado por dificultad)
+        int finalLevel = Math.min(playerSkillLevel, difficultyLevel);
+
+        // 3. Atributos básicos del ítem
+        Map<AttributeType, Double> attributes = new HashMap<>();
+        attributes.put(AttributeType.STRENGTH, (double) (1 + finalLevel / 5));
+        attributes.put(AttributeType.DEFENSE, (double) (1 + finalLevel / 6));
+
+        // 4. Crear ítem customizado con PDC + lore
+        return customizeItem(baseItem, quality, finalLevel, ability, attributes, basePDCData);
+    }
+
 }

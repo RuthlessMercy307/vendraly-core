@@ -65,7 +65,20 @@ public class RPGStats {
         return leveledUp;
     }
 
-    // Versión estática para compatibilidad con UIs que la llaman de forma estática
+    public void addUnspentPoints(int amount) {
+        if (amount > 0) this.unspentPoints += amount;
+    }
+
+    public int getUnspentPoints() { return unspentPoints; }
+
+    public void setTotalExperience(long exp) {
+        this.totalExp = Math.max(0, exp);
+    }
+
+    public void setLevel(int level) {
+        this.level = Math.max(1, level);
+    }
+
     public static long getExpForNextLevel(int lvl) {
         if (lvl < 1) return 100;
         return Math.max(100, Math.round(100 * Math.pow(1.2, lvl - 1)));
@@ -79,19 +92,17 @@ public class RPGStats {
     private double currentStamina;
     private double maxStamina;
 
-    // Constantes (equilibrio base)
     public static final double BASE_HEALTH = 100.0;
     public static final double BASE_STAMINA_MAX = 100.0;
 
     public static final double HEALTH_PER_POINT = 10.0;
     public static final double STAMINA_PER_POINT = 20.0;
 
-    public static final double STAMINA_REGEN_PER_POINT = 0.5;  // +0.5/s por punto
-    public static final double HEALTH_REGEN_PER_POINT  = 0.25; // +0.25 HP/s por punto
+    public static final double STAMINA_REGEN_PER_POINT = 0.5;
+    public static final double HEALTH_REGEN_PER_POINT  = 0.25;
 
     public double getCurrentHealth() { return currentHealth; }
     public double getMaxHealth() {
-        // Vida base + puntos + bonus
         return BASE_HEALTH + (statHealth * HEALTH_PER_POINT) + bonusHealth;
     }
     public void setCurrentHealth(double value) {
@@ -102,7 +113,6 @@ public class RPGStats {
 
     public double getCurrentStamina() { return currentStamina; }
     public double getMaxStamina() {
-        // Estamina base + puntos + bonus
         return BASE_STAMINA_MAX + (statStamina * STAMINA_PER_POINT) + bonusStamina;
     }
     public void setCurrentStamina(double value) {
@@ -120,74 +130,58 @@ public class RPGStats {
         setCurrentStamina(this.currentStamina + Math.max(0, amount));
     }
 
-    // Regen por segundo (stamina/vida)
     public double getStaminaRegenPerSecond() {
         return 1.0 + (statStaminaRegen * STAMINA_REGEN_PER_POINT);
     }
     public double getHealthRegenPerSecond() {
-        // base 0.0 + puntos * factor + BONO (si en el futuro agregas bonus)
         return (statHealthRegen * HEALTH_REGEN_PER_POINT);
     }
 
     // ----------------------------
     //          Atributos base
     // ----------------------------
-    // Puntos invertibles (núcleo)
     private int statStrength = 0;
     private int statDefense  = 0;
-    private int statAgility  = 0; // utilitario (robos/interacciones), NO evasión
+    private int statAgility  = 0;
     private int statHealth   = 0;
-    private int statStamina  = 0; // (max stamina)
+    private int statStamina  = 0;
     private int statStaminaRegen = 0;
 
-    // Stats extendidos (compatibilidad con UIs previas)
-    private int statMovementSpeed   = 0; // puntos de velocidad de movimiento (para aplicar en AttributeApplier)
-    private int statMiningSpeed     = 0; // recolección: minería
-    private int statWoodcuttingSpeed= 0; // recolección: talado
-    private int statHealthRegen     = 0; // regen de vida
+    private int statMovementSpeed   = 0;
+    private int statMiningSpeed     = 0;
+    private int statWoodcuttingSpeed= 0;
+    private int statHealthRegen     = 0;
 
-    // Bonos temporales (equipo/pociones)
     private double bonusStrength = 0;
     private double bonusDefense  = 0;
     private double bonusAgility  = 0;
     private double bonusHealth   = 0;
     private double bonusStamina  = 0;
-    // (si quieres: bonusMovementSpeed/mining/woodcutting/healthRegen → se pueden añadir luego)
 
-    // Factores de conversión por punto (daño/defensa). Agilidad no se usa como evasión.
-    public static final double STRENGTH_PER_POINT = 1.0; // daño +1 por punto (ejemplo)
-    public static final double DEFENSE_PER_POINT  = 0.5; // reducción plana +0.5 por punto
-    public static final double AGILITY_PER_POINT  = 1.0; // efectos utilitarios: mostramos “puntos” (no %)
+    public static final double STRENGTH_PER_POINT = 1.0;
+    public static final double DEFENSE_PER_POINT  = 0.5;
+    public static final double AGILITY_PER_POINT  = 1.0;
 
-    // Exposición de puntos invertidos (para UIs/menús)
     public int getStatStrength()       { return statStrength; }
     public int getStatDefense()        { return statDefense; }
     public int getStatAgility()        { return statAgility; }
     public int getStatHealth()         { return statHealth; }
     public int getStatStamina()        { return statStamina; }
     public int getStatStaminaRegen()   { return statStaminaRegen; }
-
-    // Compatibilidad: algunos UIs lo piden así por nombre
     public int getStatStaminaMax()     { return statStamina; }
     public int getStatMovementSpeed()  { return statMovementSpeed; }
     public int getStatMiningSpeed()    { return statMiningSpeed; }
     public int getStatWoodcuttingSpeed(){ return statWoodcuttingSpeed; }
     public int getStatHealthRegen()    { return statHealthRegen; }
 
-    // “Effective” (puntos efectivos incluyendo bonos) para mostrar en UI
     public int getEffectiveStrength()  { return statStrength + (int)Math.round(Math.max(0, bonusStrength)); }
     public int getEffectiveDefense()   { return statDefense  + (int)Math.round(Math.max(0, bonusDefense)); }
     public int getEffectiveAgility()   { return statAgility  + (int)Math.round(Math.max(0, bonusAgility)); }
-    public int getEffectiveMovementSpeed()   { return statMovementSpeed; }
-    public int getEffectiveMiningSpeed()     { return statMiningSpeed; }
-    public int getEffectiveWoodcuttingSpeed(){ return statWoodcuttingSpeed; }
 
-    // “Scaled” (valores derivados útiles para cálculos/lore)
     public double getScaledStrengthBonus() { return (statStrength * STRENGTH_PER_POINT) + bonusStrength; }
     public double getScaledDefenseBonus()  { return (statDefense  * DEFENSE_PER_POINT)  + bonusDefense;  }
-    public double getScaledAgilityBonus()  { return statAgility + bonusAgility; } // NO % de evasión; solo puntos útiles
+    public double getScaledAgilityBonus()  { return statAgility + bonusAgility; }
 
-    // Potencias derivadas simples (si necesitas cálculos rápidos)
     public double getAttackPower()   { return getScaledStrengthBonus(); }
     public double getDefensePower()  { return getScaledDefenseBonus();  }
 
@@ -214,6 +208,35 @@ public class RPGStats {
     public int  getSkillLevel(String skill) { return skillLevels.getOrDefault(skill, 0); }
     public long getSkillExp(String skill)   { return skillExp.getOrDefault(skill, 0L); }
 
+    // ============================================================
+    // MÉTODOS PARA AbilityManager (AbilityType)
+    // ============================================================
+    public int getAbilityLevel(AbilityType ability) {
+        if (ability == null) return 0;
+        return skillLevels.getOrDefault(ability.name().toUpperCase(), 0);
+    }
+
+    public void setAbilityLevel(AbilityType ability, int level) {
+        if (ability == null) return;
+        skillLevels.put(ability.name().toUpperCase(), Math.max(0, level));
+    }
+
+    public long getAbilityExp(AbilityType ability) {
+        if (ability == null) return 0L;
+        return skillExp.getOrDefault(ability.name().toUpperCase(), 0L);
+    }
+
+    public void setAbilityExp(AbilityType ability, long exp) {
+        if (ability == null) return;
+        skillExp.put(ability.name().toUpperCase(), Math.max(0L, exp));
+    }
+
+    public void addAbilityExp(AbilityType ability, long amount) {
+        if (ability == null || amount <= 0) return;
+        long newExp = getAbilityExp(ability) + amount;
+        setAbilityExp(ability, newExp);
+    }
+
     // ----------------------------
     //        Puntos invertibles
     // ----------------------------
@@ -225,11 +248,6 @@ public class RPGStats {
         return false;
     }
 
-    /**
-     * Aumenta un stat por nombre (tolerante a variantes).
-     * Acepta: strength, defense, agility, health, stamina, staminaregen,
-     *         movementspeed, miningspeed, woodcuttingspeed, healthregen
-     */
     public boolean increaseStat(String stat) {
         if (!spendPoint()) return false;
         String key = stat.toLowerCase().replace(" ", "");
@@ -245,7 +263,7 @@ public class RPGStats {
             case "miningspeed"   -> statMiningSpeed++;
             case "woodcuttingspeed" -> statWoodcuttingSpeed++;
             case "healthregen"   -> statHealthRegen++;
-            default              -> { unspentPoints++; return false; } // revertir gasto si nombre inválido
+            default              -> { unspentPoints++; return false; }
         }
         return true;
     }
@@ -273,10 +291,9 @@ public class RPGStats {
     private boolean isStunned = false;
     private boolean dodgeOnCooldown = false;
 
-    // Configura a tu gusto
     private static final double DODGE_COST = 5.0;
-    private static final int    DODGE_COOLDOWN_TICKS = 20; // 1s
-    public  static final int    STUN_DEFAULT_TICKS = 6;    // ~300ms
+    private static final int    DODGE_COOLDOWN_TICKS = 20;
+    public  static final int    STUN_DEFAULT_TICKS = 6;
 
     public boolean isStunned() { return isStunned; }
 
@@ -303,12 +320,218 @@ public class RPGStats {
     public UUID getUuid()        { return uuid; }
     public int  getLevel()       { return level; }
     public long getTotalExp()    { return totalExp; }
-    public int  getUnspentPoints(){ return unspentPoints; }
+
+    public long getTotalExperience() {
+        return getTotalExp();
+    }
 
     // ----------------------------
     //             Utils
     // ----------------------------
     private static double clamp(double v, double min, double max) {
         return (v < min) ? min : (v > max) ? max : v;
+    }
+
+    // ----------------------------
+    //  Bonos de equipo
+    // ----------------------------
+    private int eqBonusStrength = 0;
+    private int eqBonusDefense = 0;
+    private int eqBonusMovementSpeed = 0;
+    private int eqBonusHealth = 0;
+    private int eqBonusStamina = 0;
+    private int eqBonusMiningSpeed = 0;
+    private int eqBonusWoodcuttingSpeed = 0;
+    private int eqBonusHealthRegen = 0;
+    private int eqBonusStaminaRegen = 0;
+
+    private final Map<String, Integer> eqBonusSkills = new HashMap<>();
+
+    public void resetEquipmentBonuses() {
+        eqBonusStrength = 0;
+        eqBonusDefense = 0;
+        eqBonusMovementSpeed = 0;
+        eqBonusHealth = 0;
+        eqBonusStamina = 0;
+        eqBonusMiningSpeed = 0;
+        eqBonusWoodcuttingSpeed = 0;
+        eqBonusHealthRegen = 0;
+        eqBonusStaminaRegen = 0;
+        eqBonusSkills.clear();
+    }
+
+    public void addBonusStrength(int value)        { eqBonusStrength += value; }
+    public void addBonusDefense(int value)         { eqBonusDefense += value; }
+    public void addBonusMovementSpeed(int value)   { eqBonusMovementSpeed += value; }
+    public void addBonusHealth(int value)          { eqBonusHealth += value; }
+    public void addBonusStamina(int value)         { eqBonusStamina += value; }
+    public void addBonusMiningSpeed(int value)     { eqBonusMiningSpeed += value; }
+    public void addBonusWoodcuttingSpeed(int value){ eqBonusWoodcuttingSpeed += value; }
+    public void addBonusHealthRegen(int value)     { eqBonusHealthRegen += value; }
+    public void addBonusStaminaRegen(int value)    { eqBonusStaminaRegen += value; }
+    public void addBonusSkill(String skill, int value) {
+        eqBonusSkills.merge(skill.toUpperCase(), value, Integer::sum);
+    }
+
+    public int getEffectiveMovementSpeed() {
+        return statMovementSpeed + eqBonusMovementSpeed;
+    }
+
+    // === Métodos alias para compatibilidad con StatListener ===
+    public boolean addExpTotal(long amount) {
+        return addExp(amount);
+    }
+
+    public int getRpgLevel() {
+        return getLevel();
+    }
+
+    public float getExpToNextLevel() {
+        long needed = getExpForNextLevel(level);
+        return (float) ( (double) totalExp / needed ); // progreso 0.0–1.0
+    }
+
+    public boolean increaseStatHealth()        { return increaseStat("health"); }
+    public boolean increaseStatStrength()      { return increaseStat("strength"); }
+    public boolean increaseStatDefense()       { return increaseStat("defense"); }
+    public boolean increaseStatMovementSpeed() { return increaseStat("movementspeed"); }
+    public boolean increaseStatMiningSpeed()   { return increaseStat("miningspeed"); }
+    public boolean increaseStatWoodcuttingSpeed() { return increaseStat("woodcuttingspeed"); }
+    public boolean increaseStatHealthRegen()   { return increaseStat("healthregen"); }
+    public boolean increaseStatStaminaMax()    { return increaseStat("stamina"); }
+    public boolean increaseStatStaminaRegen()  { return increaseStat("staminaregen"); }
+
+    // === Setters usados por UserDataManager ===
+    public void setUnspentPoints(int points) {
+        this.unspentPoints = Math.max(0, points);
+    }
+
+    public void setStatHealth(int value) { this.statHealth = Math.max(0, value); }
+    public void setStatStrength(int value) { this.statStrength = Math.max(0, value); }
+    public void setStatDefense(int value) { this.statDefense = Math.max(0, value); }
+    public void setStatMovementSpeed(int value) { this.statMovementSpeed = Math.max(0, value); }
+    public void setStatMiningSpeed(int value) { this.statMiningSpeed = Math.max(0, value); }
+    public void setStatWoodcuttingSpeed(int value) { this.statWoodcuttingSpeed = Math.max(0, value); }
+    public void setStatHealthRegen(int value) { this.statHealthRegen = Math.max(0, value); }
+    public void setStatStaminaMax(int value) { this.statStamina = Math.max(0, value); }
+    public void setStatStaminaRegen(int value) { this.statStaminaRegen = Math.max(0, value); }
+
+    // Para compatibilidad con YAML "skills"
+    public void setLevel(String skill, int level) {
+        skillLevels.put(skill.toUpperCase(), Math.max(0, level));
+    }
+    public void setExperience(String skill, long exp) {
+        skillExp.put(skill.toUpperCase(), Math.max(0L, exp));
+    }
+    public Map<String, Integer> getSkillLevels() { return new HashMap<>(skillLevels); }
+    public Map<String, Long> getSkillExperience() { return new HashMap<>(skillExp); }
+
+    // --- Opcional: maxVanillaLevel si lo usas en XPManager ---
+    private int maxVanillaLevelReached = 0;
+    public int getMaxVanillaLevelReached() { return maxVanillaLevelReached; }
+    public void setMaxVanillaLevelReached(int value) { this.maxVanillaLevelReached = Math.max(0, value); }
+
+    // ============================================================
+    //   NUEVOS MÉTODOS ADMIN
+    // ============================================================
+
+    /**
+     * Modifica un stat de forma administrativa (para comandos).
+     */
+    public boolean setStatValueAdmin(String statName, int amount, String action) {
+        if (statName == null) return false;
+        String key = statName.toLowerCase();
+
+        switch (key) {
+            case "strength" -> {
+                statStrength = applyAction(statStrength, amount, action);
+                return true;
+            }
+            case "defense" -> {
+                statDefense = applyAction(statDefense, amount, action);
+                return true;
+            }
+            case "agility" -> {
+                statAgility = applyAction(statAgility, amount, action);
+                return true;
+            }
+            case "health" -> {
+                statHealth = applyAction(statHealth, amount, action);
+                setCurrentHealth(getMaxHealth());
+                return true;
+            }
+            case "stamina" -> {
+                statStamina = applyAction(statStamina, amount, action);
+                setCurrentStamina(getMaxStamina());
+                return true;
+            }
+            case "staminaregen" -> {
+                statStaminaRegen = applyAction(statStaminaRegen, amount, action);
+                return true;
+            }
+            case "movementspeed" -> {
+                statMovementSpeed = applyAction(statMovementSpeed, amount, action);
+                return true;
+            }
+            case "miningspeed" -> {
+                statMiningSpeed = applyAction(statMiningSpeed, amount, action);
+                return true;
+            }
+            case "woodcuttingspeed" -> {
+                statWoodcuttingSpeed = applyAction(statWoodcuttingSpeed, amount, action);
+                return true;
+            }
+            case "healthregen" -> {
+                statHealthRegen = applyAction(statHealthRegen, amount, action);
+                return true;
+            }
+            default -> {
+                return false;
+            }
+        }
+    }
+
+    private int applyAction(int current, int amount, String action) {
+        return switch (action) {
+            case "set" -> Math.max(0, amount);
+            case "remove" -> Math.max(0, current - Math.abs(amount));
+            default -> Math.max(0, current + amount); // add
+        };
+    }
+
+    /**
+     * Devuelve el valor actual de un objetivo (stat o ability).
+     */
+    public long getCurrentValueForTarget(String targetType, String targetName) {
+        if (targetType == null || targetName == null) return -1;
+
+        switch (targetType.toLowerCase()) {
+            case "stat" -> {
+                return switch (targetName.toLowerCase()) {
+                    case "strength" -> statStrength;
+                    case "defense" -> statDefense;
+                    case "agility" -> statAgility;
+                    case "health" -> statHealth;
+                    case "stamina" -> statStamina;
+                    case "staminaregen" -> statStaminaRegen;
+                    case "movementspeed" -> statMovementSpeed;
+                    case "miningspeed" -> statMiningSpeed;
+                    case "woodcuttingspeed" -> statWoodcuttingSpeed;
+                    case "healthregen" -> statHealthRegen;
+                    default -> -1;
+                };
+            }
+            case "ability" -> {
+                try {
+                    AbilityType type = AbilityType.valueOf(targetName.toUpperCase());
+                    return getAbilityLevel(type);
+                } catch (IllegalArgumentException e) {
+                    return -1;
+                }
+            }
+            default -> {
+                return -1;
+            }
+        }
     }
 }

@@ -34,7 +34,7 @@ public class ChatListener implements Listener {
 
         // 2. Obtener rol del jugador
         Role role = plugin.getAuthManager().getPlayerRole(player);
-        String prefix = role.getFormattedPrefix(); // prefijo con color propio del rol
+        String prefix = String.valueOf(role.getFormattedPrefix()); // prefijo con color propio del rol
 
         // 3. Mensaje del jugador (según permisos de color)
         String rawMessage = event.getMessage();

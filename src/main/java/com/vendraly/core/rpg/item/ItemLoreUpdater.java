@@ -87,7 +87,7 @@ public class ItemLoreUpdater {
         // requisitos básicos
         pdc.set(keys.REQ_STAT_STRENGTH, PersistentDataType.INTEGER, 0);
         pdc.set(keys.REQ_STAT_DEFENSE, PersistentDataType.INTEGER, 0);
-        pdc.set(keys.REQ_STAT_SPEED, PersistentDataType.INTEGER, 0);
+        pdc.set(keys.REQ_STAT_STAMINA, PersistentDataType.INTEGER, 0);
         pdc.set(keys.REQ_STAT_HEALTH, PersistentDataType.INTEGER, 0);
         pdc.set(keys.REQ_STAT_AGILITY, PersistentDataType.INTEGER, 0);
         pdc.set(keys.REQ_SKILL_BLACKSMITHING, PersistentDataType.INTEGER, 0);
@@ -101,7 +101,7 @@ public class ItemLoreUpdater {
         // inicializar bonus
         pdc.set(keys.BONUS_STAT_STRENGTH, PersistentDataType.DOUBLE, 0.0);
         pdc.set(keys.BONUS_STAT_DEFENSE, PersistentDataType.DOUBLE, 0.0);
-        pdc.set(keys.BONUS_STAT_SPEED, PersistentDataType.DOUBLE, 0.0);
+        pdc.set(keys.BONUS_STAT_MOVEMENT_SPEED, PersistentDataType.DOUBLE, 0.0);
         pdc.set(keys.BONUS_STAT_HEALTH, PersistentDataType.DOUBLE, 0.0);
         pdc.set(keys.BONUS_STAT_STAMINA_MAX, PersistentDataType.DOUBLE, 0.0);
         pdc.set(keys.BONUS_STAT_AGILITY, PersistentDataType.DOUBLE, 0.0);

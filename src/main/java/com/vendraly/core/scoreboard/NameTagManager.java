@@ -30,7 +30,7 @@ public class NameTagManager {
     public void updatePlayerTag(Player player) {
         Role role = plugin.getAuthManager().getPlayerRole(player);
         String teamName = getTeamName(role);
-        String prefix = role.getFormattedPrefix();
+        String prefix = String.valueOf(role.getFormattedPrefix());
 
         // Usar el scoreboard principal para que todos vean los mismos tags
         Scoreboard mainScoreboard = Bukkit.getScoreboardManager().getMainScoreboard();

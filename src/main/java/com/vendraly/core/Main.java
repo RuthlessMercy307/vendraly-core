@@ -1,5 +1,6 @@
 package com.vendraly.core;
 
+import com.vendraly.core.rpg.combat.DamageEngine;
 import com.vendraly.core.rpg.item.ItemLoreUpdater;
 import com.vendraly.core.rpg.item.ItemMetadataKeys;
 import com.vendraly.core.rpg.listener.ItemLoreUpdaterListener;
@@ -88,6 +89,7 @@ public class Main extends JavaPlugin {
     private ZoneSpawner zoneSpawner;
     private AbilityManager abilityManager;
     private XPManager xpManager;
+    private MonsterListener monsterListener; // 🔧 Expuesto para ZoneSpawner
 
     // Combate direccional
     private DirectionalAttackManager directionalAttackManager;
@@ -105,7 +107,7 @@ public class Main extends JavaPlugin {
         instance = this;
         setupConfiguration();
 
-        getLogger().info("§a[VendralyCore] Iniciando plugin con sistema YAML...");
+        getLogger().info("[VendralyCore] Iniciando plugin con sistema YAML...");
 
         // ----------------------------------------------------------------------
         // FASE 1: GESTORES DE DATOS Y CLAVES
@@ -120,7 +122,10 @@ public class Main extends JavaPlugin {
         // ----------------------------------------------------------------------
         // FASE 2: GESTORES RPG
         // ----------------------------------------------------------------------
-        this.statManager = new StatManager(this);
+        this.statManager = new StatManager(this); // ✅ solo este
+        DamageEngine.init(this.statManager);      // ✅ inicializar con el mismo
+        getLogger().info("DamageEngine inicializado con StatManager.");
+
         this.xpManager = new XPManager(this, this.statManager);
         this.difficultyManager = new WorldDifficultyManager(this);
         this.zoneSpawner = new ZoneSpawner(this);
@@ -131,8 +136,8 @@ public class Main extends JavaPlugin {
 
         // Estamina (bossbar + task)
         this.staminaBossBarManager = new StaminaBossBarManager(this, new HashMap<>());
-        this.staminaRegenTask = new StaminaRegenTask(this, this.staminaBossBarManager);
-        this.staminaRegenTask.runTaskTimer(this, 20L, 20L);
+        this.staminaRegenTask = new StaminaRegenTask(this, this.staminaBossBarManager, 20);
+        this.staminaRegenTask.runTaskTimer(this, 0L, 20L); // arranca ya y repite cada 20 ticks
 
         // ----------------------------------------------------------------------
         // FASE 3: REGISTRO EVENTOS Y COMANDOS
@@ -143,23 +148,24 @@ public class Main extends JavaPlugin {
         // ----------------------------------------------------------------------
         // FASE 4: INICIO DE SCHEDULERS
         // ----------------------------------------------------------------------
-        this.statManager.startRegenScheduler();
-        this.zoneSpawner.startSpawnerTask();
-        this.scoreboardManager.startUpdateTask();
+        if (this.statManager != null) this.statManager.startRegenScheduler();
+        if (this.zoneSpawner != null) this.zoneSpawner.startSpawnerTask();
+        if (this.scoreboardManager != null) this.scoreboardManager.startUpdateTask();
 
-        getLogger().info("§a[VendralyCore] Plugin activado correctamente con sistema YAML.");
+        getLogger().info("[VendralyCore] Plugin activado correctamente con sistema YAML.");
     }
+
 
     @Override
     public void onDisable() {
-        // Tasks
+        // Detener tasks
         if (this.scoreboardManager != null) this.scoreboardManager.stopUpdateTask();
         if (this.directionalAttackManager != null) this.directionalAttackManager.stop();
         if (this.statManager != null) this.statManager.stopRegenScheduler();
         if (this.zoneSpawner != null) this.zoneSpawner.stopSpawnerTask();
         if (this.staminaRegenTask != null) this.staminaRegenTask.cancel();
 
-        // BossBars
+        // Limpiar BossBars
         if (this.staminaBossBarManager != null) {
             Bukkit.getOnlinePlayers().forEach(staminaBossBarManager::removeStaminaBossBar);
         }
@@ -167,7 +173,7 @@ public class Main extends JavaPlugin {
         if (this.difficultyManager != null) this.difficultyManager.saveConfiguration();
         if (this.userDataManager != null) this.userDataManager.saveAll();
 
-        getLogger().info("§c[VendralyCore] Plugin desactivado.");
+        getLogger().info("[VendralyCore] Plugin desactivado.");
     }
 
     // --- GETTERS ---
@@ -188,63 +194,88 @@ public class Main extends JavaPlugin {
     public ItemLoreUpdater getItemLoreUpdater() { return itemLoreUpdater; }
     public DirectionalAttackManager getDirectionalAttackManager() { return directionalAttackManager; }
     public StaminaBossBarManager getStaminaBossBarManager() { return staminaBossBarManager; }
+    public MonsterListener getMonsterListener() { return monsterListener; } // ✅ Necesario para ZoneSpawner
 
     // --- REGISTROS ---
     private void registerCommands() {
-        PluginCommand registerCommand = getCommand("register");
-        if (registerCommand != null) registerCommand.setExecutor(new RegisterCommand(this));
-        PluginCommand loginCommand = getCommand("login");
-        if (loginCommand != null) loginCommand.setExecutor(new LoginCommand(this));
-        PluginCommand testCommand = getCommand("testcore");
-        if (testCommand != null) testCommand.setExecutor(new TestCommand());
+        PluginCommand cmd;
 
-        PluginCommand ecoCommand = getCommand("eco");
-        if (ecoCommand != null) ecoCommand.setExecutor(new EconomyCommand(this));
-        PluginCommand payCommand = getCommand("pay");
-        if (payCommand != null) payCommand.setExecutor(new PayCommand(this));
-        PluginCommand tradeCommand = getCommand("trade");
-        if (tradeCommand != null) tradeCommand.setExecutor(new TradeCommand(this, this.tradeManager));
+        cmd = getCommand("register");
+        if (cmd != null) cmd.setExecutor(new RegisterCommand(this));
 
-        PluginCommand setRoleCommand = getCommand("setrole");
-        if (setRoleCommand != null) setRoleCommand.setExecutor(new SetRoleCommand(this));
-        PluginCommand banCommand = getCommand("vban");
-        if (banCommand != null) banCommand.setExecutor(new VendralyBanCommand(this));
-        PluginCommand unbanCommand = getCommand("vunban");
-        if (unbanCommand != null) banCommand.setExecutor(new VendralyUnbanCommand(this));
+        cmd = getCommand("login");
+        if (cmd != null) cmd.setExecutor(new LoginCommand(this));
 
-        PluginCommand statsCommand = getCommand("stats");
-        PluginCommand atributosCommand = getCommand("atributos");
-        if (statsCommand != null) statsCommand.setExecutor(this.statManager);
-        if (atributosCommand != null) atributosCommand.setExecutor(this.statManager);
+        cmd = getCommand("testcore");
+        if (cmd != null) cmd.setExecutor(new TestCommand());
 
-        PluginCommand rpgZoneCommand = getCommand("rpgzone");
-        if (rpgZoneCommand != null) rpgZoneCommand.setExecutor(new RPGZoneCommand(this));
-        PluginCommand rpgExpCommand = getCommand("rgpexp");
-        if (rpgExpCommand != null) rpgExpCommand.setExecutor(new RpgExpCommand(this));
+        cmd = getCommand("eco");
+        if (cmd != null) cmd.setExecutor(new EconomyCommand(this));
+
+        cmd = getCommand("pay");
+        if (cmd != null) cmd.setExecutor(new PayCommand(this));
+
+        cmd = getCommand("trade");
+        if (cmd != null) cmd.setExecutor(new TradeCommand(this, this.tradeManager));
+
+        cmd = getCommand("setrole");
+        if (cmd != null) cmd.setExecutor(new SetRoleCommand(this));
+
+        cmd = getCommand("vban");
+        if (cmd != null) cmd.setExecutor(new VendralyBanCommand(this));
+
+        cmd = getCommand("vunban"); // 🔧 FIX: no uses 'banCommand' aquí
+        if (cmd != null) cmd.setExecutor(new VendralyUnbanCommand(this));
+
+        cmd = getCommand("stats");
+        if (cmd != null) cmd.setExecutor(this.statManager);
+
+        cmd = getCommand("atributos");
+        if (cmd != null) cmd.setExecutor(this.statManager);
+
+        cmd = getCommand("rpgzone");
+        if (cmd != null) cmd.setExecutor(new RPGZoneCommand(this));
+
+        cmd = getCommand("rgpexp");
+        if (cmd != null) cmd.setExecutor(new RpgExpCommand(this));
     }
 
     private void registerListeners() {
         PluginManager pm = getServer().getPluginManager();
 
+        // Listeners que dependen de StatManager
         pm.registerEvents(this.statManager, this);
+
+        // Combate direccional
         pm.registerEvents(new CameraChangeListener(this), this);
         pm.registerEvents(new DirectionalAttackListener(this), this);
+
+        // Player join (sincroniza stats/menus, etc.)
         pm.registerEvents(new PlayerJoinListener(this.statManager), this);
 
+        // PlayerListener (auth/movimiento/chat bloqueado)
         this.playerListener = new PlayerListener(this);
         pm.registerEvents(this.playerListener, this);
+
+        // Comercio/aldeanos/loot/chat
         pm.registerEvents(new TradeListener(this), this);
         pm.registerEvents(new VillagerTradeListener(this), this);
         pm.registerEvents(new ChatListener(this), this);
         pm.registerEvents(new LootRestrictionListener(), this);
 
+        // Items (lore auto y requisitos)
         pm.registerEvents(new ItemLoreUpdaterListener(this, this.itemLoreUpdater), this);
-
-        pm.registerEvents(new ParryManager(this), this);
-        pm.registerEvents(new StatListener(this, this.statManager), this);
-        pm.registerEvents(new MonsterListener(this), this);
         pm.registerEvents(new ItemRequirementListener(this), this);
 
+        // Parry/StatListener/Mobs
+        pm.registerEvents(new ParryManager(this), this);
+        pm.registerEvents(new StatListener(this, this.statManager), this);
+
+        // MonsterListener → guardamos referencia para ZoneSpawner
+        this.monsterListener = new MonsterListener(this);
+        pm.registerEvents(this.monsterListener, this);
+
+        // Habilidades
         pm.registerEvents(new TailoringListener(this, this.itemMetadataKeys), this);
         pm.registerEvents(new ApothecaryListener(this), this);
         pm.registerEvents(new BlacksmithingListener(this), this);

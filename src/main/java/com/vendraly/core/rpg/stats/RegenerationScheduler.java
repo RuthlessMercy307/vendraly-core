@@ -156,4 +156,11 @@ public class RegenerationScheduler {
             regenTask = null;
         }
     }
+
+    public void ensurePlayerTask(UUID uuid) {
+        if (regenTask == null || regenTask.isCancelled()) {
+            startRegenScheduler();
+        }
+    }
+
 }
