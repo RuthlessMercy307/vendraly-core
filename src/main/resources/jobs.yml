@@ -1,0 +1,22 @@
+jobs:
+  miner:
+    name: Minero
+    reward: 8
+    materials:
+      - IRON_ORE
+      - GOLD_ORE
+      - DIAMOND_ORE
+  lumberjack:
+    name: Leñador
+    reward: 5
+    materials:
+      - OAK_LOG
+      - BIRCH_LOG
+      - SPRUCE_LOG
+  hunter:
+    name: Cazador
+    reward: 7
+    materials:
+      - ROTTEN_FLESH
+      - BONE
+      - STRING

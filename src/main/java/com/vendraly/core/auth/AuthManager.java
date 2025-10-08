@@ -1,235 +1,106 @@
 package com.vendraly.core.auth;
 
-import com.vendraly.core.Main;
-import com.vendraly.core.database.UserDataManager;
+import com.vendraly.VendralyCore;
 import com.vendraly.core.database.PlayerData;
+import com.vendraly.core.database.UserDataManager;
 import com.vendraly.core.roles.Role;
+import com.vendraly.core.roles.RoleManager;
 import com.vendraly.core.security.AuthUtil;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
-import org.bukkit.permissions.PermissionAttachment;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Gestiona autenticación y roles usando YAML (o sistema de almacenamiento).
- * Es el punto central para el estado de autenticación y roles de jugadores ONLINE.
+ * Controla el ciclo de autenticación de los jugadores, gestionando registros,
+ * logins y estados temporales durante la sesión.
  */
 public class AuthManager {
 
-    private final Main plugin;
-    private final UserDataManager dataManager;
+    private final VendralyCore plugin;
+    private final UserDataManager userDataManager;
+    private final RoleManager roleManager;
+    private final Map<UUID, Boolean> sessionState = new ConcurrentHashMap<>();
 
-    // Almacenamiento en memoria de permisos (PermissionsAttachment)
-    private final Map<UUID, PermissionAttachment> playerPermissions = new HashMap<>();
-
-    // CACHÉ: Almacenamiento en memoria de PlayerData para jugadores ONLINE
-    private final Map<UUID, PlayerData> playerDataCache = new HashMap<>();
-
-    public AuthManager(Main plugin) {
+    public AuthManager(VendralyCore plugin, UserDataManager userDataManager, RoleManager roleManager) {
         this.plugin = plugin;
-        this.dataManager = plugin.getUserDataManager();
-
-        // Cargar datos de jugadores online al inicio (por ejemplo en /reload)
-        Bukkit.getOnlinePlayers().forEach(p -> {
-            PlayerData data = dataManager.loadPlayerData(p.getUniqueId(), p.getName());
-            playerDataCache.put(p.getUniqueId(), data);
-            loadRoleFromData(p.getUniqueId());
-        });
-    }
-
-    // =============================
-    // MANEJO DE CACHE
-    // =============================
-
-    public PlayerData loadPlayerToCache(Player player) {
-        PlayerData data = dataManager.loadPlayerData(player.getUniqueId(), player.getName());
-        playerDataCache.put(player.getUniqueId(), data);
-        loadRoleFromData(player.getUniqueId());
-        return data;
-    }
-
-    public void unloadPlayerFromCache(UUID uuid) {
-        logoutPlayer(uuid); // asegura guardado
-        playerDataCache.remove(uuid);
-        removeRolePermissions(uuid);
-    }
-
-    public PlayerData getPlayerData(UUID uuid) {
-        return playerDataCache.get(uuid);
-    }
-
-    // =============================
-    // REGISTRO Y LOGIN
-    // =============================
-
-    public boolean isRegistered(UUID uuid) {
-        PlayerData data = getPlayerData(uuid);
-        if (data != null) return data.isRegistered();
-        return dataManager.isRegistered(uuid);
-    }
-
-    @Deprecated
-    public boolean isRegistered(String username) {
-        Player player = Bukkit.getPlayerExact(username);
-        if (player != null) {
-            return isRegistered(player.getUniqueId());
-        }
-        // Mejor: delegar a UserDataManager para obtener UUID
-        UUID uuid = dataManager.getUUIDFromUsername(username).join();
-        return uuid != null && isRegistered(uuid);
+        this.userDataManager = userDataManager;
+        this.roleManager = roleManager;
     }
 
     public boolean isAuthenticated(UUID uuid) {
-        PlayerData data = getPlayerData(uuid);
-        return data != null && data.isLoggedIn();
+        return sessionState.getOrDefault(uuid, false);
     }
 
-    public boolean registerPlayer(UUID uuid, String password) {
-        if (isRegistered(uuid)) return false;
-
-        Player player = Bukkit.getPlayer(uuid);
-        String username = (player != null) ? player.getName() : "UNKNOWN";
-
-        String hashedPassword = AuthUtil.hashPassword(password);
-        if (hashedPassword == null) {
-            plugin.getLogger().warning("Error al registrar " + username + ": hash nulo.");
-            return false;
-        }
-
-        PlayerData data = dataManager.loadPlayerData(uuid, username);
-        data.setRegistered(true);
-        data.setPasswordHash(hashedPassword);
-        data.setLoggedIn(true);
-        data.setCurrentRole(Role.PLAYER);
-
-        dataManager.savePlayerData(data);
-        playerDataCache.put(uuid, data);
-
-        if (player != null) {
-            setPlayerRole(uuid, Role.PLAYER);
-            plugin.getPlayerListener().onLoginSuccess(player);
-        }
-
-        plugin.getLogger().info("Jugador " + username + " registrado con éxito.");
-        return true;
-    }
-
-    public boolean loginPlayer(UUID uuid, String password) {
-        PlayerData data = getPlayerData(uuid);
-        if (data == null || !data.isRegistered()) return false;
-
-        // Verificación de contraseña
-        if (!AuthUtil.checkPassword(password, data.getPasswordHash())) {
-            data.setFailedAttempts(data.getFailedAttempts() + 1);
-            dataManager.savePlayerData(data);
-            return false;
-        }
-
-        // ✅ Si la contraseña es válida
-        data.setLoggedIn(true);
-        data.setFailedAttempts(0);
-
-        // 🔒 Rehash automático si el cost es bajo o el formato no es válido
-        if (AuthUtil.needsRehash(data.getPasswordHash())) {
-            String newHash = AuthUtil.hashPassword(password);
-            data.setPasswordHash(newHash);
-            plugin.getLogger().info("Contraseña de " + Bukkit.getOfflinePlayer(uuid).getName() + " actualizada a un hash más seguro.");
-        }
-
-        dataManager.savePlayerData(data);
-
-        Player player = Bukkit.getPlayer(uuid);
-        if (player != null) {
-            plugin.getPlayerListener().onLoginSuccess(player);
-            plugin.getLogger().info(player.getName() + " ha iniciado sesión con éxito.");
-        }
-
-        return true;
-    }
-
-
-    public void logoutPlayer(UUID uuid) {
-        removeRolePermissions(uuid);
-        PlayerData data = getPlayerData(uuid);
-        if (data != null) {
-            data.setLoggedIn(false);
-            dataManager.savePlayerData(data);
-        }
-    }
-
-    // =============================
-    // ROLES
-    // =============================
-
-    public Role getPlayerRole(Player player) {
-        PlayerData data = getPlayerData(player.getUniqueId());
-        return (data != null) ? data.getCurrentRole() : Role.PLAYER;
-    }
-
-    public Role loadRoleFromData(UUID uuid) {
-        PlayerData data = getPlayerData(uuid);
-        if (data == null) return Role.PLAYER;
-
-        Role role = data.getCurrentRole();
-        Player player = Bukkit.getPlayer(uuid);
-        if (player != null && player.isOnline()) {
-            applyRolePermissions(player, role);
-        }
-        return role;
-    }
-
-    public void setPlayerRole(UUID uuid, Role role) {
-        if (role == null) role = Role.PLAYER;
-
-        PlayerData data = getPlayerData(uuid);
-        if (data != null) {
-            data.setCurrentRole(role);
-            dataManager.savePlayerData(data);
-        } else {
-            dataManager.setPlayerRole(uuid, role);
-        }
-
-        Player player = Bukkit.getPlayer(uuid);
-        if (player != null && player.isOnline()) {
-            applyRolePermissions(player, role);
-            player.sendMessage(ChatColor.GREEN + "Tu rol ha sido actualizado a " + role.getFormattedPrefix());
-        }
-    }
-
-    private void applyRolePermissions(Player player, Role role) {
-        removeRolePermissions(player.getUniqueId());
-
-        if (player.isOp()) player.setOp(false);
-        if (role.isOp()) {
-            player.setOp(true);
+    public void register(Player player, String password) {
+        PlayerData data = userDataManager.getOrCreate(player.getUniqueId(), player.getName());
+        if (data.getPasswordHash() != null && !data.getPasswordHash().isEmpty()) {
+            player.sendMessage(Component.text("Ya tienes una cuenta registrada.", NamedTextColor.RED));
             return;
         }
+        data.setPasswordHash(AuthUtil.hashPassword(password));
+        data.setAuthenticated(true);
+        sessionState.put(player.getUniqueId(), true);
+        userDataManager.save(data);
+        roleManager.applyRole(player, data.getRole());
+        player.sendMessage(Component.text("Registro completado. ¡Bienvenido!", NamedTextColor.GREEN));
+    }
 
-        if (!role.getPermissions().isEmpty()) {
-            PermissionAttachment attachment = player.addAttachment(plugin);
-            for (String perm : role.getPermissions()) {
-                attachment.setPermission(perm, true);
-            }
-            playerPermissions.put(player.getUniqueId(), attachment);
+    public void login(Player player, String password) {
+        PlayerData data = userDataManager.getOrCreate(player.getUniqueId(), player.getName());
+        if (data.getPasswordHash() == null || data.getPasswordHash().isEmpty()) {
+            player.sendMessage(Component.text("Debes registrarte primero.", NamedTextColor.RED));
+            return;
+        }
+        if (!AuthUtil.checkPassword(password, data.getPasswordHash())) {
+            player.sendMessage(Component.text("Contraseña incorrecta.", NamedTextColor.RED));
+            return;
+        }
+        data.setAuthenticated(true);
+        sessionState.put(player.getUniqueId(), true);
+        roleManager.applyRole(player, data.getRole());
+        userDataManager.save(data);
+        player.sendMessage(Component.text("Inicio de sesión exitoso.", NamedTextColor.GREEN));
+    }
+
+    public void logout(Player player) {
+        sessionState.remove(player.getUniqueId());
+        PlayerData data = userDataManager.getOrCreate(player.getUniqueId(), player.getName());
+        data.resetAuth();
+        userDataManager.save(data);
+    }
+
+    public void setPlayerRole(Player player, Role role) {
+        PlayerData data = userDataManager.getOrCreate(player.getUniqueId(), player.getName());
+        data.setRole(role);
+        userDataManager.save(data);
+        roleManager.applyRole(player, role);
+    }
+
+    public void handleJoin(Player player) {
+        PlayerData data = userDataManager.getOrCreate(player.getUniqueId(), player.getName());
+        boolean alreadyAuthenticated = data.isAuthenticated();
+        if (alreadyAuthenticated) {
+            sessionState.put(player.getUniqueId(), true);
+            roleManager.applyRole(player, data.getRole());
+            player.sendMessage(Component.text("Autenticación recordada. Bienvenido de nuevo.", NamedTextColor.GREEN));
+        } else {
+            sessionState.put(player.getUniqueId(), false);
+            player.sendMessage(Component.text("Usa /login <contraseña> o /register <contraseña> <confirmación>", NamedTextColor.YELLOW));
         }
     }
 
-    private void removeRolePermissions(UUID uuid) {
-        PermissionAttachment attachment = playerPermissions.remove(uuid);
-        if (attachment != null) {
-            attachment.remove();
-        }
+    public void handleQuit(Player player) {
+        sessionState.remove(player.getUniqueId());
+        PlayerData data = userDataManager.getOrCreate(player.getUniqueId(), player.getName());
+        data.setAuthenticated(false);
+        userDataManager.save(data);
+    }
 
-        Player player = Bukkit.getPlayer(uuid);
-        if (player != null) {
-            PlayerData data = getPlayerData(uuid);
-            if (player.isOp() && (data == null || !data.getCurrentRole().isOp())) {
-                player.setOp(false);
-            }
-        }
+    public Map<UUID, Boolean> getSessionState() {
+        return sessionState;
     }
 }

@@ -1,70 +1,58 @@
 package com.vendraly.core.database;
 
-import com.vendraly.core.Main;
+import com.vendraly.core.jobs.JobProgress;
 import com.vendraly.core.roles.Role;
-import com.vendraly.core.rpg.RPGStats;
+import com.vendraly.core.rpg.stats.RPGStats;
+import org.bukkit.Bukkit;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 /**
- * Modelo de datos para la información del jugador.
- * Contiene todos los datos que deben ser persistentes (Auth, Economy, Role, RPG).
+ * Representa la información persistente de un jugador.
  */
 public class PlayerData {
-    private final UUID playerUUID;
-    private final String playerName; // NOTA: El nombre es solo para referencia, nunca para identificación (usar UUID)
 
-    // Auth
-    private boolean registered;
+    private final UUID uuid;
+    private String name;
     private String passwordHash;
-    private int failedAttempts;
-    private long lockedUntil;
-    private boolean loggedIn;
+    private boolean authenticated;
+    private Role role;
+    private double bankBalance;
+    private double cashBalance;
+    private final RPGStats stats;
+    private final Map<String, JobProgress> jobs;
+    private String clanId;
+    private int rpgLevel;
+    private long rpgExperience;
+    private int unspentPoints;
+    private boolean banned;
 
-    // Economy
-    private double balance;      // Dinero seguro (bank)
-    private double cashBalance;  // Dinero robable (cash)
-
-    // Role
-    private Role currentRole;
-
-    // RPG
-    private RPGStats rpgStats;
-
-    public PlayerData(UUID playerUUID, String playerName) {
-        this.playerUUID = playerUUID;
-        this.playerName = playerName;
-
-        // Defaults seguros
-        this.registered = false;
-        this.loggedIn = false;
-        this.balance = 0.0;
-        this.cashBalance = 0.0;
-        this.currentRole = Role.PLAYER;
-
-        // RPGStats vinculado al jugador
-        this.rpgStats = new RPGStats(playerUUID, Main.getInstance());
+    public PlayerData(UUID uuid, String name) {
+        this.uuid = uuid;
+        this.name = name;
+        this.stats = new RPGStats();
+        this.jobs = new HashMap<>();
+        this.role = Role.CIVILIAN;
+        this.passwordHash = "";
+        this.bankBalance = 0.0D;
+        this.cashBalance = 0.0D;
+        this.rpgLevel = 1;
+        this.rpgExperience = 0L;
+        this.unspentPoints = 0;
     }
 
-    // ===================================
-    // Getters y Setters
-    // ===================================
-
-    public UUID getPlayerUUID() {
-        return playerUUID;
+    public UUID getUuid() {
+        return uuid;
     }
 
-    public String getPlayerName() {
-        return playerName;
+    public String getName() {
+        return name;
     }
 
-    // --- Auth ---
-    public boolean isRegistered() {
-        return registered;
-    }
-
-    public void setRegistered(boolean registered) {
-        this.registered = registered;
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getPasswordHash() {
@@ -75,66 +63,97 @@ public class PlayerData {
         this.passwordHash = passwordHash;
     }
 
-    public int getFailedAttempts() {
-        return failedAttempts;
+    public boolean isAuthenticated() {
+        return authenticated;
     }
 
-    public void setFailedAttempts(int failedAttempts) {
-        this.failedAttempts = Math.max(0, failedAttempts);
+    public void setAuthenticated(boolean authenticated) {
+        this.authenticated = authenticated;
     }
 
-    public long getLockedUntil() {
-        return lockedUntil;
+    public Role getRole() {
+        return role;
     }
 
-    public void setLockedUntil(long lockedUntil) {
-        this.lockedUntil = Math.max(0, lockedUntil);
+    public void setRole(Role role) {
+        this.role = role;
     }
 
-    public boolean isLoggedIn() {
-        return loggedIn;
+    public double getBankBalance() {
+        return bankBalance;
     }
 
-    public void setLoggedIn(boolean loggedIn) {
-        this.loggedIn = loggedIn;
-    }
-
-    // --- Economy ---
-    public double getBalance() {
-        return balance;
-    }
-
-    /** Previene que el balance sea negativo */
-    public void setBalance(double balance) {
-        this.balance = Math.max(0, balance);
+    public void setBankBalance(double bankBalance) {
+        this.bankBalance = bankBalance;
     }
 
     public double getCashBalance() {
         return cashBalance;
     }
 
-    /** Previene que el cash balance sea negativo */
     public void setCashBalance(double cashBalance) {
-        this.cashBalance = Math.max(0, cashBalance);
+        this.cashBalance = cashBalance;
     }
 
-    // --- Role ---
-    public Role getCurrentRole() {
-        return currentRole;
+    public RPGStats getStats() {
+        return stats;
     }
 
-    public void setCurrentRole(Role currentRole) {
-        this.currentRole = currentRole != null ? currentRole : Role.PLAYER;
+    public Map<String, JobProgress> getJobs() {
+        return jobs;
     }
 
-    // --- RPG ---
-    public RPGStats getRpgStats() {
-        return rpgStats;
+    public String getClanId() {
+        return clanId;
     }
 
-    public void setRpgStats(RPGStats rpgStats) {
-        if (rpgStats != null) {
-            this.rpgStats = rpgStats;
+    public void setClanId(String clanId) {
+        this.clanId = clanId;
+    }
+
+    public int getRpgLevel() {
+        return rpgLevel;
+    }
+
+    public void setRpgLevel(int rpgLevel) {
+        this.rpgLevel = rpgLevel;
+    }
+
+    public long getRpgExperience() {
+        return rpgExperience;
+    }
+
+    public void setRpgExperience(long rpgExperience) {
+        this.rpgExperience = rpgExperience;
+    }
+
+    public int getUnspentPoints() {
+        return unspentPoints;
+    }
+
+    public void setUnspentPoints(int unspentPoints) {
+        this.unspentPoints = unspentPoints;
+    }
+
+    public boolean isBanned() {
+        return banned;
+    }
+
+    public void setBanned(boolean banned) {
+        this.banned = banned;
+    }
+
+    public JobProgress getOrCreateJob(String id) {
+        return jobs.computeIfAbsent(id.toLowerCase(), key -> new JobProgress(key));
+    }
+
+    public void resetAuth() {
+        this.authenticated = false;
+    }
+
+    public void applyOnlineName() {
+        if (Bukkit.getPlayer(uuid) != null) {
+            Bukkit.getPlayer(uuid).setDisplayName(role.getPrefix() + name);
         }
     }
 }

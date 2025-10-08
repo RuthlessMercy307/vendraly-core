@@ -1,0 +1,20 @@
+roles:
+  owner:
+    prefix: '&4[Owner] '
+    permissions:
+      - vendraly.*
+  admin:
+    prefix: '&c[Admin] '
+    permissions:
+      - vendraly.admin
+  moderator:
+    prefix: '&9[Mod] '
+    permissions:
+      - vendraly.moderate
+  vip:
+    prefix: '&6[VIP] '
+    permissions:
+      - vendraly.vip
+  civilian:
+    prefix: ''
+    permissions: []
