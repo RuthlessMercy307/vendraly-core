@@ -10,7 +10,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import java.io.File;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.logging.Level;
 
 // Comandos Base
@@ -89,7 +88,7 @@ public class Main extends JavaPlugin {
     private ZoneSpawner zoneSpawner;
     private AbilityManager abilityManager;
     private XPManager xpManager;
-    private MonsterListener monsterListener; // 🔧 Expuesto para ZoneSpawner
+    private MonsterListener monsterListener; // usado por ZoneSpawner
 
     // Combate direccional
     private DirectionalAttackManager directionalAttackManager;
@@ -107,7 +106,7 @@ public class Main extends JavaPlugin {
         instance = this;
         setupConfiguration();
 
-        getLogger().info("[VendralyCore] Iniciando plugin con sistema YAML...");
+        getLogger().info("[VendralyCore] Iniciando plugin...");
 
         // ----------------------------------------------------------------------
         // FASE 1: GESTORES DE DATOS Y CLAVES
@@ -122,8 +121,8 @@ public class Main extends JavaPlugin {
         // ----------------------------------------------------------------------
         // FASE 2: GESTORES RPG
         // ----------------------------------------------------------------------
-        this.statManager = new StatManager(this); // ✅ solo este
-        DamageEngine.init(this.statManager);      // ✅ inicializar con el mismo
+        this.statManager = new StatManager(this);
+        DamageEngine.init(this.statManager); // ✅ inicializar con el mismo
         getLogger().info("DamageEngine inicializado con StatManager.");
 
         this.xpManager = new XPManager(this, this.statManager);
@@ -134,10 +133,10 @@ public class Main extends JavaPlugin {
         this.scoreboardManager = new ScoreboardManager(this);
         this.itemLoreUpdater = new ItemLoreUpdater(this, this.itemMetadataKeys);
 
-        // Estamina (bossbar + task)
-        this.staminaBossBarManager = new StaminaBossBarManager(this, new HashMap<>());
-        this.staminaRegenTask = new StaminaRegenTask(this, this.staminaBossBarManager, 20);
-        this.staminaRegenTask.runTaskTimer(this, 0L, 20L); // arranca ya y repite cada 20 ticks
+        // Estamina (si quieres activarla, descomenta estas líneas)
+        // this.staminaBossBarManager = new StaminaBossBarManager(this, new HashMap<>());
+        // this.staminaRegenTask = new StaminaRegenTask(this, this.staminaBossBarManager, 20);
+        // this.staminaRegenTask.runTaskTimer(this, 0L, 20L);
 
         // ----------------------------------------------------------------------
         // FASE 3: REGISTRO EVENTOS Y COMANDOS
@@ -152,9 +151,8 @@ public class Main extends JavaPlugin {
         if (this.zoneSpawner != null) this.zoneSpawner.startSpawnerTask();
         if (this.scoreboardManager != null) this.scoreboardManager.startUpdateTask();
 
-        getLogger().info("[VendralyCore] Plugin activado correctamente con sistema YAML.");
+        getLogger().info("[VendralyCore] Plugin activado correctamente.");
     }
-
 
     @Override
     public void onDisable() {
@@ -194,7 +192,7 @@ public class Main extends JavaPlugin {
     public ItemLoreUpdater getItemLoreUpdater() { return itemLoreUpdater; }
     public DirectionalAttackManager getDirectionalAttackManager() { return directionalAttackManager; }
     public StaminaBossBarManager getStaminaBossBarManager() { return staminaBossBarManager; }
-    public MonsterListener getMonsterListener() { return monsterListener; } // ✅ Necesario para ZoneSpawner
+    public MonsterListener getMonsterListener() { return monsterListener; }
 
     // --- REGISTROS ---
     private void registerCommands() {
@@ -224,7 +222,7 @@ public class Main extends JavaPlugin {
         cmd = getCommand("vban");
         if (cmd != null) cmd.setExecutor(new VendralyBanCommand(this));
 
-        cmd = getCommand("vunban"); // 🔧 FIX: no uses 'banCommand' aquí
+        cmd = getCommand("vunban");
         if (cmd != null) cmd.setExecutor(new VendralyUnbanCommand(this));
 
         cmd = getCommand("stats");
@@ -250,7 +248,7 @@ public class Main extends JavaPlugin {
         pm.registerEvents(new CameraChangeListener(this), this);
         pm.registerEvents(new DirectionalAttackListener(this), this);
 
-        // Player join (sincroniza stats/menus, etc.)
+        // Player join
         pm.registerEvents(new PlayerJoinListener(this.statManager), this);
 
         // PlayerListener (auth/movimiento/chat bloqueado)
@@ -263,15 +261,15 @@ public class Main extends JavaPlugin {
         pm.registerEvents(new ChatListener(this), this);
         pm.registerEvents(new LootRestrictionListener(), this);
 
-        // Items (lore auto y requisitos)
+        // Items
         pm.registerEvents(new ItemLoreUpdaterListener(this, this.itemLoreUpdater), this);
         pm.registerEvents(new ItemRequirementListener(this), this);
 
-        // Parry/StatListener/Mobs
+        // Parry/Stats/Mobs
         pm.registerEvents(new ParryManager(this), this);
         pm.registerEvents(new StatListener(this, this.statManager), this);
 
-        // MonsterListener → guardamos referencia para ZoneSpawner
+        // MonsterListener (guardamos referencia)
         this.monsterListener = new MonsterListener(this);
         pm.registerEvents(this.monsterListener, this);
 

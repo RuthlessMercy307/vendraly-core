@@ -92,14 +92,14 @@ public class RPGStats {
     private double currentStamina;
     private double maxStamina;
 
-    public static final double BASE_HEALTH = 100.0;
+    public static final double BASE_HEALTH = 5.0;
     public static final double BASE_STAMINA_MAX = 100.0;
 
-    public static final double HEALTH_PER_POINT = 10.0;
-    public static final double STAMINA_PER_POINT = 20.0;
+    public static final double HEALTH_PER_POINT = 1.0;
+    public static final double STAMINA_PER_POINT = 10.0;
 
     public static final double STAMINA_REGEN_PER_POINT = 0.5;
-    public static final double HEALTH_REGEN_PER_POINT  = 0.25;
+    public static final double HEALTH_REGEN_PER_POINT  = 0.1;
 
     public double getCurrentHealth() { return currentHealth; }
     public double getMaxHealth() {

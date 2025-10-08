@@ -6,7 +6,10 @@ import com.vendraly.core.rpg.ability.AbilityType;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.EquipmentSlotGroup;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -35,6 +38,7 @@ public class ItemLoreUpdater {
      */
     public void updateLoreAndPDC(ItemStack item, Player player, RPGStats stats) {
         if (item == null || item.getType().isAir()) return;
+
         ItemMeta meta = item.getItemMeta();
         if (meta == null) return;
 
@@ -56,6 +60,10 @@ public class ItemLoreUpdater {
         // Renderizar lore
         List<String> lore = renderLore(pdc, player, stats);
         meta.setLore(lore);
+
+        // Aplicar atributos reales (limpia y reaplica)
+        applyAttributeModifiers(item, meta, pdc);
+
         item.setItemMeta(meta);
     }
 
@@ -78,13 +86,15 @@ public class ItemLoreUpdater {
         String abilityName = "";
         String name = item.getType().name();
 
-        if (name.contains("_SWORD") || name.contains("_PICKAXE") || name.contains("_AXE") || name.contains("_SHOVEL") || name.contains("_HOE")) {
+        if (name.contains("_SWORD") || name.contains("_PICKAXE") || name.contains("_AXE") ||
+                name.contains("_SHOVEL") || name.contains("_HOE")) {
             abilityName = AbilityType.BLACKSMITHING.name();
-        } else if (name.contains("_HELMET") || name.contains("_CHESTPLATE") || name.contains("_LEGGINGS") || name.contains("_BOOTS")) {
+        } else if (name.contains("_HELMET") || name.contains("_CHESTPLATE") ||
+                name.contains("_LEGGINGS") || name.contains("_BOOTS")) {
             abilityName = AbilityType.TAILORING.name();
         }
 
-        // requisitos básicos
+        // requisitos básicos (estos pueden quedarse en INTEGER)
         pdc.set(keys.REQ_STAT_STRENGTH, PersistentDataType.INTEGER, 0);
         pdc.set(keys.REQ_STAT_DEFENSE, PersistentDataType.INTEGER, 0);
         pdc.set(keys.REQ_STAT_STAMINA, PersistentDataType.INTEGER, 0);
@@ -98,20 +108,20 @@ public class ItemLoreUpdater {
         pdc.set(keys.ITEM_ABILITY_TYPE, PersistentDataType.STRING, abilityName);
         pdc.set(ITEM_LEVEL_KEY, PersistentDataType.INTEGER, 1);
 
-        // inicializar bonus
-        pdc.set(keys.BONUS_STAT_STRENGTH, PersistentDataType.DOUBLE, 0.0);
-        pdc.set(keys.BONUS_STAT_DEFENSE, PersistentDataType.DOUBLE, 0.0);
+        // inicializar bonus (todo DOUBLE para evitar el error de DoubleTag vs Integer)
+        pdc.set(keys.BONUS_STAT_STRENGTH,       PersistentDataType.DOUBLE, 0.0);
+        pdc.set(keys.BONUS_STAT_DEFENSE,        PersistentDataType.DOUBLE, 0.0);
         pdc.set(keys.BONUS_STAT_MOVEMENT_SPEED, PersistentDataType.DOUBLE, 0.0);
-        pdc.set(keys.BONUS_STAT_HEALTH, PersistentDataType.DOUBLE, 0.0);
-        pdc.set(keys.BONUS_STAT_STAMINA_MAX, PersistentDataType.DOUBLE, 0.0);
-        pdc.set(keys.BONUS_STAT_AGILITY, PersistentDataType.DOUBLE, 0.0);
-        pdc.set(keys.BONUS_STAT_ATTACK_SPEED, PersistentDataType.DOUBLE, 0.0);
-        pdc.set(keys.BONUS_STAT_ATTACK_RANGE, PersistentDataType.DOUBLE, 0.0);
-        pdc.set(keys.BONUS_STAT_HEALTH_REGEN, PersistentDataType.DOUBLE, 0.0);
-        pdc.set(keys.BONUS_STAT_CRITICAL_CHANCE, PersistentDataType.DOUBLE, 0.0);
-        pdc.set(keys.BONUS_DURABILITY, PersistentDataType.DOUBLE, 0.0);
+        pdc.set(keys.BONUS_STAT_HEALTH,         PersistentDataType.DOUBLE, 0.0);
+        pdc.set(keys.BONUS_STAT_STAMINA_MAX,    PersistentDataType.DOUBLE, 0.0);
+        pdc.set(keys.BONUS_STAT_AGILITY,        PersistentDataType.DOUBLE, 0.0);
+        pdc.set(keys.BONUS_STAT_ATTACK_SPEED,   PersistentDataType.DOUBLE, 0.0);
+        pdc.set(keys.BONUS_STAT_ATTACK_RANGE,   PersistentDataType.DOUBLE, 0.0);
+        pdc.set(keys.BONUS_STAT_HEALTH_REGEN,   PersistentDataType.DOUBLE, 0.0);
+        pdc.set(keys.BONUS_STAT_CRITICAL_CHANCE,PersistentDataType.DOUBLE, 0.0);
+        pdc.set(keys.BONUS_DURABILITY,          PersistentDataType.DOUBLE, 0.0);
 
-        item.setItemMeta(meta); // ✅ guardar cambios
+        item.setItemMeta(meta); // guardar cambios
     }
 
     private List<String> renderLore(PersistentDataContainer pdc, Player player, RPGStats stats) {
@@ -135,25 +145,28 @@ public class ItemLoreUpdater {
         int skillReq = pdc.getOrDefault(keys.REQ_SKILL_BLACKSMITHING, PersistentDataType.INTEGER, 0)
                 + pdc.getOrDefault(keys.REQ_SKILL_TAILORING, PersistentDataType.INTEGER, 0);
 
-        if (strReq > 0) { hasReqs = true; reqs.append("\n").append(" - Fuerza: ").append(strReq); }
-        if (defReq > 0) { hasReqs = true; reqs.append("\n").append(" - Defensa: ").append(defReq); }
-        if (agiReq > 0) { hasReqs = true; reqs.append("\n").append(" - Agilidad: ").append(agiReq); }
+        if (strReq > 0)   { hasReqs = true; reqs.append("\n").append(" - Fuerza: ").append(strReq); }
+        if (defReq > 0)   { hasReqs = true; reqs.append("\n").append(" - Defensa: ").append(defReq); }
+        if (agiReq > 0)   { hasReqs = true; reqs.append("\n").append(" - Agilidad: ").append(agiReq); }
         if (skillReq > 0) { hasReqs = true; reqs.append("\n").append(" - Habilidad: ").append(skillReq); }
 
-        if (hasReqs) { lore.add(reqs.toString()); lore.add(""); }
+        if (hasReqs) {
+            lore.add(reqs.toString());
+            lore.add("");
+        }
 
         // bonus
-        double strBonus = pdc.getOrDefault(keys.BONUS_STAT_STRENGTH, PersistentDataType.DOUBLE, 0.0);
-        double defBonus = pdc.getOrDefault(keys.BONUS_STAT_DEFENSE, PersistentDataType.DOUBLE, 0.0);
+        double strBonus  = pdc.getOrDefault(keys.BONUS_STAT_STRENGTH,        PersistentDataType.DOUBLE, 0.0);
+        double defBonus  = pdc.getOrDefault(keys.BONUS_STAT_DEFENSE,         PersistentDataType.DOUBLE, 0.0);
         double critBonus = pdc.getOrDefault(keys.BONUS_STAT_CRITICAL_CHANCE, PersistentDataType.DOUBLE, 0.0);
-        double regenBonus = pdc.getOrDefault(keys.BONUS_STAT_HEALTH_REGEN, PersistentDataType.DOUBLE, 0.0);
+        double regenBonus= pdc.getOrDefault(keys.BONUS_STAT_HEALTH_REGEN,    PersistentDataType.DOUBLE, 0.0);
 
         if (strBonus > 0 || defBonus > 0 || critBonus > 0 || regenBonus > 0) {
             lore.add(ChatColor.AQUA + "" + ChatColor.BOLD + "BONUS:");
-            if (strBonus > 0) lore.add(" + " + strBonus + " Fuerza");
-            if (defBonus > 0) lore.add(" + " + defBonus + " Defensa");
+            if (strBonus  > 0) lore.add(" + " + strBonus  + " Fuerza");
+            if (defBonus  > 0) lore.add(" + " + defBonus  + " Defensa");
             if (critBonus > 0) lore.add(" + " + critBonus + "% Crítico");
-            if (regenBonus > 0) lore.add(" + " + regenBonus + " Regeneración Vida");
+            if (regenBonus> 0) lore.add(" + " + regenBonus+ " Regeneración Vida");
         }
 
         return lore;
@@ -161,12 +174,84 @@ public class ItemLoreUpdater {
 
     private ChatColor getQualityColor(String quality) {
         switch (quality.toUpperCase()) {
-            case "COMUN": return ChatColor.WHITE;
-            case "RARO": return ChatColor.GREEN;
-            case "EPICO": return ChatColor.LIGHT_PURPLE;
+            case "COMUN":      return ChatColor.WHITE;
+            case "RARO":       return ChatColor.GREEN;
+            case "EPICO":      return ChatColor.LIGHT_PURPLE;
             case "LEGENDARIO": return ChatColor.GOLD;
-            case "MITICO": return ChatColor.RED;
-            default: return ChatColor.GRAY;
+            case "MITICO":     return ChatColor.RED;
+            default:           return ChatColor.GRAY;
         }
+    }
+
+    /** Aplica atributos vanilla al item (sólo visual/soporte; tu cálculo real es externo). */
+    private void applyAttributeModifiers(ItemStack item, ItemMeta meta, PersistentDataContainer pdc) {
+        // Limpia modifiers viejos: evitar problemas con Multimap
+        meta.setAttributeModifiers(null);
+
+        // Leemos los bonus como DOUBLE (ya unificados)
+        double defBonus = pdc.getOrDefault(keys.BONUS_STAT_DEFENSE, PersistentDataType.DOUBLE, 0.0);
+        double hpBonus  = pdc.getOrDefault(keys.BONUS_STAT_HEALTH,  PersistentDataType.DOUBLE, 0.0);
+        double strBonus = pdc.getOrDefault(keys.BONUS_STAT_STRENGTH,PersistentDataType.DOUBLE, 0.0);
+
+        // Elegimos el grupo de slot adecuado para que el atributo aplique donde corresponde
+        EquipmentSlotGroup group = resolveSlotGroup(item.getType());
+
+        // Usar constructores NO deprecados (NamespacedKey + Operation + EquipmentSlotGroup)
+        if (defBonus > 0) {
+            meta.addAttributeModifier(
+                    Attribute.ARMOR,
+                    new AttributeModifier(
+                            new NamespacedKey(plugin, "rpg-armor"),
+                            defBonus,
+                            AttributeModifier.Operation.ADD_NUMBER,
+                            group
+                    )
+            );
+        }
+
+        if (hpBonus > 0) {
+            meta.addAttributeModifier(
+                    Attribute.MAX_HEALTH,
+                    new AttributeModifier(
+                            new NamespacedKey(plugin, "rpg-health"),
+                            hpBonus,
+                            AttributeModifier.Operation.ADD_NUMBER,
+                            group
+                    )
+            );
+        }
+
+        if (strBonus > 0) {
+            meta.addAttributeModifier(
+                    Attribute.ATTACK_DAMAGE,
+                    new AttributeModifier(
+                            new NamespacedKey(plugin, "rpg-strength"),
+                            strBonus,
+                            AttributeModifier.Operation.ADD_NUMBER,
+                            group
+                    )
+            );
+        }
+    }
+
+    /** Determina el grupo de slot en el que debe aplicar el atributo. */
+    private EquipmentSlotGroup resolveSlotGroup(Material type) {
+        String name = type.name();
+
+        // Armas / herramientas → mano
+        if (name.endsWith("_SWORD") || name.endsWith("_PICKAXE") ||
+                name.endsWith("_AXE")   || name.endsWith("_SHOVEL") ||
+                name.endsWith("_HOE")) {
+            return EquipmentSlotGroup.HAND;
+        }
+
+        // Piezas de armadura → slot específico
+        if (name.endsWith("_HELMET"))     return EquipmentSlotGroup.HEAD;
+        if (name.endsWith("_CHESTPLATE")) return EquipmentSlotGroup.CHEST;
+        if (name.endsWith("_LEGGINGS"))   return EquipmentSlotGroup.LEGS;
+        if (name.endsWith("_BOOTS"))      return EquipmentSlotGroup.FEET;
+
+        // Por defecto (por si agregas más cosas en el futuro)
+        return EquipmentSlotGroup.ANY;
     }
 }

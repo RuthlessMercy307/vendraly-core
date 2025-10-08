@@ -188,6 +188,12 @@ public class StatListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
         final Player player = event.getPlayer();
+
+        // Si es OP o creativo, no limitar
+        if (player.isOp() || player.getGameMode() == GameMode.CREATIVE) {
+            return;
+        }
+
         if (!plugin.getAuthManager().isAuthenticated(player.getUniqueId())) return;
         if (player.getGameMode() != GameMode.SURVIVAL) return;
 

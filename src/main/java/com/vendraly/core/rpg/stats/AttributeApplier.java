@@ -98,19 +98,19 @@ public class AttributeApplier {
             PersistentDataContainer pdc = item.getItemMeta().getPersistentDataContainer();
             if (!pdc.has(keys.ITEM_QUALITY, PersistentDataType.STRING)) continue; // Solo ítems RPG
 
-            totalStrBonus       += pdc.getOrDefault(keys.BONUS_STAT_STRENGTH,      PersistentDataType.INTEGER, 0);
-            totalDefBonus       += pdc.getOrDefault(keys.BONUS_STAT_DEFENSE,       PersistentDataType.INTEGER, 0);
-            totalSpeedBonus     += pdc.getOrDefault(keys.BONUS_STAT_MOVEMENT_SPEED,         PersistentDataType.INTEGER, 0);
-            totalHealthBonus    += pdc.getOrDefault(keys.BONUS_STAT_HEALTH,        PersistentDataType.INTEGER, 0);
-            totalStaminaBonus   += pdc.getOrDefault(keys.BONUS_STAT_STAMINA_MAX,   PersistentDataType.INTEGER, 0);
+            totalStrBonus += pdc.getOrDefault(keys.BONUS_STAT_STRENGTH, PersistentDataType.DOUBLE, 0.0).intValue();
+            totalDefBonus += pdc.getOrDefault(keys.BONUS_STAT_DEFENSE, PersistentDataType.DOUBLE, 0.0).intValue();
+            totalSpeedBonus += pdc.getOrDefault(keys.BONUS_STAT_MOVEMENT_SPEED, PersistentDataType.DOUBLE, 0.0).intValue();
+            totalHealthBonus += pdc.getOrDefault(keys.BONUS_STAT_HEALTH, PersistentDataType.DOUBLE, 0.0).intValue();
+            totalStaminaBonus += pdc.getOrDefault(keys.BONUS_STAT_STAMINA_MAX, PersistentDataType.DOUBLE, 0.0).intValue();
 
-            totalMiningBonus    += pdc.getOrDefault(keys.BONUS_STAT_MINING,        PersistentDataType.INTEGER, 0);
-            totalWoodcuttingBonus += pdc.getOrDefault(keys.BONUS_STAT_WOODCUTTING, PersistentDataType.INTEGER, 0);
-            totalRegenBonus     += pdc.getOrDefault(keys.BONUS_STAT_HEALTH_REGEN,  PersistentDataType.INTEGER, 0);
+            totalMiningBonus += pdc.getOrDefault(keys.BONUS_STAT_MINING, PersistentDataType.DOUBLE, 0.0).intValue();
+            totalWoodcuttingBonus += pdc.getOrDefault(keys.BONUS_STAT_WOODCUTTING, PersistentDataType.DOUBLE, 0.0).intValue();
+            totalRegenBonus += pdc.getOrDefault(keys.BONUS_STAT_HEALTH_REGEN, PersistentDataType.DOUBLE, 0.0).intValue();
 
-            totalBlacksmithBonus += pdc.getOrDefault(keys.BONUS_SKILL_BLACKSMITH,  PersistentDataType.INTEGER, 0);
-            totalTailoringBonus  += pdc.getOrDefault(keys.BONUS_SKILL_TAILOR,      PersistentDataType.INTEGER, 0);
-            totalApothecaryBonus += pdc.getOrDefault(keys.BONUS_SKILL_APOTHECARY,  PersistentDataType.INTEGER, 0);
+            totalBlacksmithBonus += pdc.getOrDefault(keys.BONUS_SKILL_BLACKSMITH, PersistentDataType.DOUBLE, 0.0).intValue();
+            totalTailoringBonus  += pdc.getOrDefault(keys.BONUS_SKILL_TAILOR, PersistentDataType.DOUBLE, 0.0).intValue();
+            totalApothecaryBonus += pdc.getOrDefault(keys.BONUS_SKILL_APOTHECARY, PersistentDataType.DOUBLE, 0.0).intValue();
         }
 
         stats.addBonusStrength(totalStrBonus);

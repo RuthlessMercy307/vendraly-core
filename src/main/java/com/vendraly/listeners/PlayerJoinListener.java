@@ -42,9 +42,9 @@ public class PlayerJoinListener implements Listener {
                 }
 
                 // 4. BossBar de estamina (CRÍTICO)
-                if (plugin.getStaminaBossBarManager() != null) {
-                    plugin.getStaminaBossBarManager().addStaminaBossBar(player);
-                }
+                //if (plugin.getStaminaBossBarManager() != null) {
+                //    plugin.getStaminaBossBarManager().addStaminaBossBar(player);
+                //}
             }
         }.runTaskLater(plugin, 1L);
     }
@@ -66,9 +66,9 @@ public class PlayerJoinListener implements Listener {
                 }
 
                 // BossBar de estamina también en respawn
-                if (plugin.getStaminaBossBarManager() != null) {
-                    plugin.getStaminaBossBarManager().addStaminaBossBar(player);
-                }
+                //if (plugin.getStaminaBossBarManager() != null) {
+                //    plugin.getStaminaBossBarManager().addStaminaBossBar(player);
+                //}
             }
         }.runTaskLater(plugin, 1L);
     }

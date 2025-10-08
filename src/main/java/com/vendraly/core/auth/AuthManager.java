@@ -122,14 +122,24 @@ public class AuthManager {
         PlayerData data = getPlayerData(uuid);
         if (data == null || !data.isRegistered()) return false;
 
+        // Verificación de contraseña
         if (!AuthUtil.checkPassword(password, data.getPasswordHash())) {
             data.setFailedAttempts(data.getFailedAttempts() + 1);
             dataManager.savePlayerData(data);
             return false;
         }
 
+        // ✅ Si la contraseña es válida
         data.setLoggedIn(true);
         data.setFailedAttempts(0);
+
+        // 🔒 Rehash automático si el cost es bajo o el formato no es válido
+        if (AuthUtil.needsRehash(data.getPasswordHash())) {
+            String newHash = AuthUtil.hashPassword(password);
+            data.setPasswordHash(newHash);
+            plugin.getLogger().info("Contraseña de " + Bukkit.getOfflinePlayer(uuid).getName() + " actualizada a un hash más seguro.");
+        }
+
         dataManager.savePlayerData(data);
 
         Player player = Bukkit.getPlayer(uuid);
@@ -140,6 +150,7 @@ public class AuthManager {
 
         return true;
     }
+
 
     public void logoutPlayer(UUID uuid) {
         removeRolePermissions(uuid);

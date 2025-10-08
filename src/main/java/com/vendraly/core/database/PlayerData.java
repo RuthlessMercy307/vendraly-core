@@ -43,8 +43,7 @@ public class PlayerData {
         this.currentRole = Role.PLAYER;
 
         // RPGStats vinculado al jugador
-        Main plugin = new Main();
-        this.rpgStats = new RPGStats(playerUUID, plugin);
+        this.rpgStats = new RPGStats(playerUUID, Main.getInstance());
     }
 
     // ===================================

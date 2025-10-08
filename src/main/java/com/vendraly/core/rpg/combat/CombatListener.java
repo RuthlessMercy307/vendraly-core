@@ -32,10 +32,10 @@ public class CombatListener implements Listener {
         event.setCancelled(true);
 
         // Dirección del ataque según el atacante
-        AttackDirection attackDir = attackManager.getActiveDirection(attacker);
+        AttackDirection attackDir = attackManager.getDirectionFromView(attacker);
 
         // Dirección de la defensa según el defensor
-        AttackDirection defenseDir = attackManager.getActiveDirection(defender);
+        AttackDirection defenseDir = attackManager.getDirectionFromView(defender);
 
         // Estado del defensor
         boolean isBlocking = defender.isBlocking();
