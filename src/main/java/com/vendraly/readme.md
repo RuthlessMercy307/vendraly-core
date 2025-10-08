@@ -1618,98 +1618,43 @@ Seguridad: Si el hash generado coincide con el hash almacenado, se considera que
 
 Nota: Aunque el uso de SHA-256 es un buen estándar, la implementación es estática y simple. No incluye salting (añadir datos aleatorios únicos antes del hash), lo que es un paso de seguridad adicional. Sin embargo, para un sistema de autenticación básica de un plugin de Minecraft, esta implementación es un comienzo seguro y funcional.
 
-TradeGUI.java: Interfaz de Tradeo Seguro
-=
-La clase TradeGUI define la estructura estática y el diseño visual de la interfaz de tradeo seguro de VendralyCore. Utiliza un Chest GUI de 54 slots (6 filas) y se enfoca en separar claramente las ofertas de los dos jugadores y proporcionar controles de dinero intuitivos.
+TradeGuiManager.java: Constructor de la Interfaz de Comercio Seguro
+=`TradeGuiManager` es la utilidad responsable de construir el inventario de 54 slots utilizado en el comercio seguro. Se encarga únicamente del diseño visual y de los botones de confirmación.
 
-Diseño y Arquitectura de la Interfaz
-El diseño de la GUI está dividido simétricamente para los dos participantes de la TradeSession:
+Distribución del inventario
+El inventario se divide en tres zonas: la franja izquierda (slots 0-20) para el solicitante, la franja derecha (27-44) para el objetivo y un separador central de paneles grises (21-26) que evita interacciones cruzadas.
 
-Área	Slots	Propósito
-Oferta P1	PLAYER_SLOTS_1 (Lado Izquierdo)	Donde el Jugador 1 coloca sus ítems.
-Oferta P2	PLAYER_SLOTS_2 (Lado Derecho)	Donde el Jugador 2 coloca sus ítems.
-Separador	SEPARATOR_SLOTS (Columna Central)	Utiliza barras de hierro (IRON_BARS) para una separación visual clara.
-Control	Fila inferior (Slots 36 a 53)	Contiene todos los botones de acción (Aceptar, Dinero, Cancelar).
+Controles inferiores
+Los slots 45 y 53 contienen bloques de esmeralda llamados "Confirmar".
+El resto de la fila inferior (46-52) se rellena con paneles grises para bloquear interacciones y mantener la simetría visual.
 
-Exportar a Hojas de cálculo
-Controles de la Fila Inferior (Control)
-La fila de control es el corazón funcional de la GUI, diseñada para ser simétrica y segura:
+Relación con TradeSession
+La interfaz es compartida por ambos jugadores; `TradeSession` es quien controla qué slots son válidos y cuándo reiniciar el estado de confirmación si cambia alguna oferta.
 
-Cancelación: El botón central (Slot 40) es la lana roja CANCELAR TRADE. Al hacer clic, finaliza la sesión y devuelve los ítems.
+TradeManager.java: Coordinador del Comercio Seguro
+=`TradeManager` coordina el ciclo de vida de los intercambios: solicitudes, creación de la GUI y cierre de sesiones.
 
-Ajuste de Dinero: Botones de Esmeralda (aumentar) y Redstone (disminuir) permiten al jugador ajustar su oferta monetaria en incrementos de $1.00 y $10.00.
+Flujo básico
+1. `/trade <jugador>` almacena una solicitud en `pendingRequests` y notifica al objetivo.
+2. `/trade accept <jugador>` verifica la solicitud; si coincide, crea una `TradeSession` con la GUI compartida por `TradeGuiManager`.
+3. `TradeListener` vigila la interfaz; cuando ambos jugadores confirman, `TradeManager` mueve los ítems y transfiere el dinero ofrecido utilizando `CashManager`.
 
-Monto de Dinero (P1/P2_OFFER_SLOT): Estos slots muestran el monto actual que cada jugador ha añadido al tradeo, actualizado dinámicamente por la sesión. Están representados por un Bloque de Oro con el monto en el Lore.
-
-Estado de Aceptación (P1/P2_STATUS_SLOT): Estos slots cambian de color (Lana Roja = Pendiente, Lana Verde = Listo) y son el mecanismo de confirmación. Ambos jugadores deben estar en estado LISTO para que el tradeo se complete.
-
-Sincronización de Datos
-Aunque TradeGUI.java define el aspecto estático del inventario, su funcionalidad depende totalmente de la instancia TradeSession con la que se inicializa:
-
-Datos Dinámicos: Los métodos updateReadyStatus() y updateMoneySlots() leen los datos en tiempo real de la sesión (ej., session.isReady(player) y session.getMoneyOffer(player)) para reflejarlos correctamente en los botones de estado y los montos.
-
-Item Creation: Se utiliza una serie de métodos helper (createItem, createMoneyItem, createStatusItem) para asegurar que todos los ítems de control tengan un display name y un lore con el formato coherente de VendralyCore.
-
-Este diseño garantiza que el tradeo sea transparente, visible, y que la interfaz solo muestre acciones y estados válidos basados en el estado actual del juego.
-
-TradeManager.java: El Coordinador de Comercio
-=
-La clase TradeManager es el cerebro detrás del sistema de intercambio seguro de VendralyCore. Se encarga de gestionar el ciclo completo de vida de un intercambio: desde el envío inicial de la solicitud hasta el inicio de la sesión activa (TradeSession). Su robustez se basa en la gestión de estados y el uso eficiente de tareas asíncronas para la expiración.
-
-Ciclo de Vida de la Solicitud
-El manager mantiene un estricto control sobre las solicitudes pendientes para prevenir spam y asegurar que las peticiones no queden activas indefinidamente:
-
-Envío (sendRequest): Antes de enviar, verifica que ni el remitente ni el objetivo estén ya en un tradeo activo (isInTrade).
-
-Expiración Automática: Cada solicitud inicia un temporizador de 10 segundos (EXPIRATION_TICKS). Si la solicitud no es aceptada en ese tiempo, la tarea se ejecuta, eliminando la solicitud y notificando a ambos jugadores.
-
-Reemplazo: Si un jugador recibe una nueva solicitud mientras ya tiene una pendiente, el manager cancela automáticamente la tarea de expiración anterior y la reemplaza por la nueva.
-
-Aceptación (acceptRequest): Al aceptar, el manager cancela inmediatamente el temporizador de expiración y crea la nueva instancia de TradeSession.
-
-Gestión de Sesiones Activas
-El manager es el único punto de acceso para verificar y finalizar un tradeo:
-
-activeTrades: Utiliza un mapa para vincular a ambos jugadores a la misma instancia de TradeSession. Esto permite que cualquier jugador en la sesión pueda interactuar con ella o que el sistema la identifique.
-
-Finalización (endTrade): Cuando la sesión termina (ya sea por éxito, cancelación o desconexión), el manager se encarga de:
-
-Cerrar la GUI de tradeo en el siguiente tick síncrono (session::closeGUI).
-
-Remover a ambos jugadores del mapa activeTrades, liberándolos para iniciar un nuevo intercambio.
-
-Esta arquitectura garantiza que el tradeo sea una experiencia de solo dos jugadores a la vez y que los recursos del servidor (como las tareas de Bukkit) se limpien correctamente tras cada interacción.
+Seguridad operativa
+* Cada jugador sólo puede tener una solicitud pendiente; una nueva sobrescribe la anterior.
+* Al cerrar la interfaz se devuelven los ítems automáticamente y se limpia la sesión.
+* El manager expone `tick()` y `shutdown()` para permitir futuras expansiones (por ejemplo expiraciones automáticas).
 
 TradeSession.java: Lógica de la Transacción Segura
-=
-La clase TradeSession encapsula toda la interacción, el estado y la lógica de la transacción entre dos jugadores. Es la única clase responsable de la apertura del GUI, la gestión de ofertas (ítems y dinero), los cambios de estado de "Listo" y, lo más importante, la ejecución segura de la transferencia final.
+=`TradeSession` encapsula a los dos jugadores involucrados, su inventario compartido y el estado de confirmación.
 
-Inicialización y Bloqueo
-El componente es inicializado por el TradeManager una vez que la solicitud es aceptada. Para garantizar la seguridad económica, la sesión realiza una acción de bloqueo al inicio:
+Elementos clave
+* `getRequesterSlots()` y `getTargetSlots()` definen las posiciones válidas para cada jugador.
+* `setMoney(Player, double)` registra la oferta monetaria de cada lado y reinicia las confirmaciones.
+* `toggleReady(Player)` alterna la marca de listo de quien presiona el botón.
 
-Bloqueo de Efectivo (maxCash1/maxCash2): El saldo máximo de efectivo que cada jugador puede ofrecer se lee de forma síncrona (.join()) del CashManager en el momento de la inicialización. Esto establece un límite superior a la oferta de dinero y evita que el jugador gaste dinero mientras se encuentra en la sesión de tradeo, lo que podría llevar a balances negativos.
+Cuando ambos jugadores están listos, `TradeManager` valida los fondos disponibles y realiza el intercambio de ítems y dinero. Si la sesión se cancela o se cierra la interfaz, `endSession` devuelve cada objeto a su propietario original y limpia el estado interno.
 
-Gestión de la Oferta y el Estado
-La sesión utiliza las flags booleanas isReady1 y isReady2 para gestionar el estado de aceptación.
 
-toggleReady(Player): Permite al jugador confirmar que su oferta está lista.
-
-Restablecimiento de Estado (resetReadyStatus): Este es un mecanismo de seguridad crítico. Si un jugador manipula un ítem o un botón de dinero en el GUI, el estado de "Listo" de ambos jugadores se revierte automáticamente (isReady1 = false; isReady2 = false;). Esto obliga a ambos participantes a reconfirmar la transacción, garantizando que el tradeo no se complete con ofertas modificadas de último momento.
-
-setMoneyOffer(Player, double): Maneja los cambios en la oferta de dinero, validando siempre contra el saldo máximo cacheado (maxCash) para prevenir sobregiros.
-
-Transferencia Final Asíncrona (completeTrade)
-La ejecución de la transacción final es la parte más compleja y se maneja con CompletableFuture para evitar el bloqueo del hilo principal:
-
-Transferencia de Ítems (Síncrona): Los ítems se transfieren primero de la GUI a los inventarios reales de los jugadores (transferItems). Los ítems que no caben en el inventario se dropean en el suelo (distributeItems).
-
-Transferencia de Efectivo (Asíncrona): Se crean cuatro CompletableFuture para manejar la deducción de los fondos ofrecidos y la adición a la otra parte (ej., -moneyOffer1 a P1 y +moneyOffer1 a P2).
-
-Sincronización: CompletableFuture.allOf(...) se utiliza para esperar que las cuatro operaciones de base de datos se completen de forma segura. La lógica de finalización (mensajes, cierre de GUI, actualización de Scoreboard) se ejecuta en el hilo principal de Bukkit mediante runTask para garantizar la seguridad de la API.
-
-Este diseño asegura que el sistema sea resistente a la latencia de la base de datos y que la finalización de la transacción sea atómica (o todo tiene éxito, o se reporta un error crítico sin dejar el tradeo a medias).
-
-Main.java: El Orquestador de VendralyCore
 =
 La clase Main.java es el punto de entrada (JavaPlugin) del proyecto VendralyCore. Su única responsabilidad es actuar como el orquestador central: establece la configuración inicial, inicializa todas las clases manager en el orden correcto de dependencia y coordina el registro de todos los comandos, listeners y tareas programadas.
 

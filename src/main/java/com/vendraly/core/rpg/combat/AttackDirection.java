@@ -1,16 +1,24 @@
 package com.vendraly.core.rpg.combat;
 
 /**
- * Define las 5 direcciones fijas de ataque disponibles para el jugador.
+ * Direcciones de ataque para el combate direccional.
  */
 public enum AttackDirection {
-    // Horizontal y Vertical
-    UP,
-    LEFT,
-    RIGHT,
-    // Diagonales (Abajo se asume como movimiento vertical)
-    DIAGONAL_LEFT_DOWN,
-    DIAGONAL_RIGHT_DOWN,
-    // Por defecto, o si no hay movimiento significativo
-    NEUTRAL
+    NORTH,
+    NORTH_EAST,
+    EAST,
+    SOUTH_EAST,
+    SOUTH,
+    SOUTH_WEST,
+    WEST,
+    NORTH_WEST;
+
+    public static AttackDirection fromYaw(float yaw) {
+        yaw = yaw % 360;
+        if (yaw < 0) {
+            yaw += 360;
+        }
+        int index = Math.round(yaw / 45f) % values().length;
+        return values()[index];
+    }
 }

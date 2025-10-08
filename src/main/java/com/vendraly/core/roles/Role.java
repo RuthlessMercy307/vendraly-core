@@ -1,100 +1,45 @@
 package com.vendraly.core.roles;
 
 import net.kyori.adventure.text.Component;
-import org.bukkit.ChatColor;
-import org.jetbrains.annotations.NotNull;
-
-import java.util.Arrays;
-import java.util.List;
 import net.kyori.adventure.text.format.NamedTextColor;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 /**
- * Define los diferentes roles disponibles en el servidor, sus prefijos y permisos.
+ * Roles predeterminados del servidor.
  */
 public enum Role {
+    OWNER("§4[Owner] ", NamedTextColor.DARK_RED, Arrays.asList("vendraly.*")),
+    ADMIN("§c[Admin] ", NamedTextColor.RED, Arrays.asList("vendraly.admin", "vendraly.moderate")),
+    MODERATOR("§9[Mod] ", NamedTextColor.BLUE, Collections.singletonList("vendraly.moderate")),
+    VIP("§6[VIP] ", NamedTextColor.GOLD, Collections.singletonList("vendraly.vip")),
+    CIVILIAN("", NamedTextColor.WHITE, Collections.emptyList());
 
-    // Roles Administrativos
-    OWNER(ChatColor.DARK_RED, "Owner", true), // isOp = true
-    DEVELOPMENT(ChatColor.DARK_AQUA, "Development", true), // isOp = true
-    MODERADOR(ChatColor.LIGHT_PURPLE, "Moderador", false,
-            "vendralycore.mod.ban",
-            "vendralycore.mod.unban",
-            "bukkit.command.gamemode", // Acceso a creativo/espectador
-            "bukkit.command.teleport"),
-
-    // Roles de Soporte
-    HELPER(ChatColor.AQUA, "Helper", false,
-            "bukkit.command.teleport"), // Solo para ayudar, no creativo/ban
-
-    // Roles de Estatus/VIP
-    MEDIA(ChatColor.YELLOW, "Media", false),
-    VIP(ChatColor.GREEN, "VIP", false),
-
-    // Rol por Defecto
-    PLAYER(ChatColor.GRAY, "Player", false);
-
-    private final ChatColor color;
     private final String prefix;
-    private final boolean isOp;
+    private final NamedTextColor color;
     private final List<String> permissions;
 
-    /**
-     * Constructor para roles que no son OP y tienen permisos específicos.
-     */
-    Role(ChatColor color, String prefix, boolean isOp, String... permissions) {
-        this.color = color;
+    Role(String prefix, NamedTextColor color, List<String> permissions) {
         this.prefix = prefix;
-        this.isOp = isOp;
-        this.permissions = Arrays.asList(permissions);
+        this.color = color;
+        this.permissions = permissions;
     }
 
-    /**
-     * Constructor para roles sin permisos específicos (como VIP/MEDIA) o que son OP.
-     */
-    Role(ChatColor color, String prefix, boolean isOp) {
-        this(color, prefix, isOp, new String[0]);
+    public String getPrefix() {
+        return prefix;
     }
 
-    // Getters
-
-    public ChatColor getColor() {
+    public NamedTextColor getColor() {
         return color;
     }
 
-    /**
-     * Obtiene el prefijo formateado para mostrar en el chat.
-     * Ejemplo: [Owner]
-     */
-    public @NotNull Component getFormattedPrefix() {
-        return Component.text("[" + prefix + "] ", convertColor(color));
-    }
-
-    /**
-     * Obtiene los permisos asociados a este rol.
-     */
     public List<String> getPermissions() {
         return permissions;
     }
 
-    /**
-     * Devuelve true si el rol debe tener permisos de operador (OP).
-     */
-    public boolean isOp() {
-        return isOp;
+    public Component getDisplayName(String name) {
+        return Component.text(prefix + name, color);
     }
-
-
-    private NamedTextColor convertColor(ChatColor chatColor) {
-        return switch (chatColor) {
-            case DARK_RED -> NamedTextColor.DARK_RED;
-            case DARK_AQUA -> NamedTextColor.DARK_AQUA;
-            case LIGHT_PURPLE -> NamedTextColor.LIGHT_PURPLE;
-            case AQUA -> NamedTextColor.AQUA;
-            case YELLOW -> NamedTextColor.YELLOW;
-            case GREEN -> NamedTextColor.GREEN;
-            case GRAY -> NamedTextColor.GRAY;
-            default -> NamedTextColor.WHITE;
-        };
-    }
-
 }
